@@ -797,45 +797,107 @@ const Index = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {[
                             {
-                                name: "Arundhati Katdare",
-                                position: "Head - HR & Operations",
-                                img: "/team/Arundhati.JPG",
-                            },
-                            {
-                                name: "Vishakha Patil",
-                                position: "Asst. Manager - Bus. Development",
-                                img: "/team/Vishakha.JPG",
-                            },
-                            {
-                                name: "Kirti Katti",
-                                position: "Asst. Manager - Talent Acquisition",
-                                img: "/team/Kirti.JPG",
-                            },
-                            {
-                                name: "Akshat Khulat",
-                                position: "Asst. Manager - L&D",
-                                img: "/team/Akshay.JPG",
+                                name: "Vivek Sinare",
+                                position: "Managing Director",
+                                img: null,
+                                contact: "8766825520",
+                                email: "viveksinare@theresonance.co.in",
                             },
                             {
                                 name: "Imran Bagwan",
-                                position: "Manager - Talent Acquisition",
-                                img: "/team/Imran.JPG",
+                                position: "Manager - Compliance",
+                                img: null,
+                                contact: "7030910333",
+                                email: "imran@theresonance.co.in",
                             },
                             {
-                                name: "Shyam J Dhoble",
-                                position: "Divisional Manager - Vidharbha",
-                                img: "/team/Shyam Dhobale.jpeg",
+                                name: "Arundhati Katdare",
+                                position: "HEAD - HR Operations and L&D",
+                                img: null,
+                                contact: "9850742620",
+                                email: "arundhati@theresonance.co.in",
                             },
                             {
-                                name: "Vandana Arvind",
-                                position: "Consultant",
-                                img: null, // Missing photo - will show placeholder
+                                name: "Kirti Katti",
+                                position:
+                                    "Assistant Manager - Talent Acquisition & Compliance",
+                                img: null,
+                                contact: "7758979161",
+                                email: "kirti@theresonance.co.in",
+                            },
+                            {
+                                name: "Vishakha Patil",
+                                position:
+                                    "Assistant Manager - Client Relations & Business Development",
+                                img: null,
+                                contact: "7758979167",
+                                email: "vishakha@theresonance.co.in",
+                            },
+                            {
+                                name: "Chaitrali Badan",
+                                position:
+                                    "Chief Manager - HR Operations & Data Analytics",
+                                img: null,
+                                contact: "9890625021",
+                                email: "chaitrali@theresonance.co.in",
+                            },
+                            {
+                                name: "Pratima Singh",
+                                position: "Chief Manager - MMR",
+                                img: null,
+                                contact: "8108129569",
+                                email: "pratima@theresonance.co.in",
+                            },
+                            {
+                                name: "Vijeta Sharma",
+                                position:
+                                    "Manager - Talent Acquisition Officer",
+                                img: null,
+                                contact: "9665196719",
+                                email: "vijeta@theresonance.co.in",
+                            },
+                            {
+                                name: "Shreya Pimperkar",
+                                position:
+                                    "Assistant Manager - Talent Acquisition",
+                                img: null,
+                                contact: "9156691613",
+                                email: "shreya.theresonance@gmail.com",
+                            },
+                            {
+                                name: "Manasi Abhyankar",
+                                position: "Team Associate",
+                                img: null,
+                                contact: "7709008581",
+                                email: null,
+                            },
+                            {
+                                name: "Shrushti Naik",
+                                position: "Talent Acquisition - Interns",
+                                img: null,
+                                contact: "7758906191",
+                                email: "shrushti.theresonance@gmail.com",
+                            },
+                            {
+                                name: "Sejal Mirajkar",
+                                position: "Talent Acquisition - Interns",
+                                img: null,
+                                contact: "7758979163",
+                                email: "sejal.resonance@gmail.com",
+                            },
+                            {
+                                name: "Priynka Mule",
+                                position:
+                                    "Assistant Manager - Talent Acquisition",
+                                img: null,
+                                contact: "8655940092",
+                                email: "priya.theresonance@gmail.com",
                             },
                         ].map((member, i) => (
                             <div
                                 key={i}
-                                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow text-center">
-                                <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden bg-gray-200 flex items-center justify-center">
+                                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow text-center flex flex-col items-center">
+                                <div className="w-24 h-24 rounded-full mb-4 overflow-hidden bg-gray-200 flex items-center justify-center border-2 border-blue-100">
                                     {member.img ? (
                                         <img
                                             src={member.img}
@@ -848,12 +910,28 @@ const Index = () => {
                                         </div>
                                     )}
                                 </div>
-                                <h3 className="text-lg font-bold text-blue-900 mb-2">
+                                <h3 className="text-lg font-bold text-blue-900 mb-1">
                                     {member.name}
                                 </h3>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm font-semibold text-blue-700 mb-4 leading-tight min-h-[3rem] flex items-center justify-center">
                                     {member.position}
                                 </p>
+                                <div className="w-full space-y-2 pt-4 border-t border-gray-100 mt-auto">
+                                    {member.email && (
+                                        <div className="flex items-center justify-center space-x-2 text-[10px] sm:text-xs text-gray-600">
+                                            <Mail className="w-3 h-3 text-orange-500 shrink-0" />
+                                            <span className="truncate">
+                                                {member.email}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {member.contact && (
+                                        <div className="flex items-center justify-center space-x-2 text-[10px] sm:text-xs text-gray-600">
+                                            <Phone className="w-3 h-3 text-blue-500 shrink-0" />
+                                            <span>{member.contact}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
