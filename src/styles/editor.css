@@ -1,0 +1,23 @@
+/* PrimeReact Editor Styling Fixes */
+.p-editor-container .p-editor-toolbar {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.p-editor-container .p-editor-content {
+    border-bottom-left-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+    border-color: #e2e8f0;
+}
+
+.p-editor-container .p-editor-content .ql-editor {
+    min-height: 300px;
+    font-size: 1rem;
+    color: #1e293b;
+}
+
+.p-editor-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-options {
+    z-index: 100;
+}
