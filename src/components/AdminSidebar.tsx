@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     LayoutDashboard,
@@ -11,10 +12,23 @@ import {
     ExternalLink,
     Layers,
     Images,
+    KeyRound,
+    Eye,
+    EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { logout } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { logout, changePassword } from "@/lib/auth";
+import { toast } from "sonner";
 
 interface SidebarProps {
     className?: string;
@@ -25,9 +39,53 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    // Change Password Dialog States
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [currentPwd, setCurrentPwd] = useState("");
+    const [newPwd, setNewPwd] = useState("");
+    const [confirmPwd, setConfirmPwd] = useState("");
+    const [showCurrent, setShowCurrent] = useState(false);
+    const [showNew, setShowNew] = useState(false);
+
     const handleLogout = () => {
         logout();
         navigate("/login");
+    };
+
+    const handleUpdatePassword = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!currentPwd) {
+            toast.error("Please enter your last used (current) password");
+            return;
+        }
+
+        if (!newPwd) {
+            toast.error("Please enter a new password");
+            return;
+        }
+
+        if (newPwd.length < 4) {
+            toast.error("New password must be at least 4 characters long");
+            return;
+        }
+
+        if (newPwd !== confirmPwd) {
+            toast.error("New password and confirmation do not match");
+            return;
+        }
+
+        const res = changePassword(currentPwd, newPwd);
+
+        if (res.success) {
+            toast.success(res.message);
+            setCurrentPwd("");
+            setNewPwd("");
+            setConfirmPwd("");
+            setIsPasswordModalOpen(false);
+        } else {
+            toast.error(res.message);
+        }
     };
 
     const links = [
@@ -102,6 +160,21 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
                     <span>View Live Website</span>
                 </Link>
 
+                {/* Change Password Button (Above Logout Button) */}
+                <Button
+                    variant="ghost"
+                    onClick={() => {
+                        setCurrentPwd("");
+                        setNewPwd("");
+                        setConfirmPwd("");
+                        setIsPasswordModalOpen(true);
+                    }}
+                    className="w-full justify-start text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white px-3.5 py-2.5 rounded-xl transition-colors">
+                    <KeyRound className="w-4 h-4 mr-3 text-orange-400" />
+                    Change Password
+                </Button>
+
+                {/* Logout Button */}
                 <Button
                     variant="ghost"
                     onClick={handleLogout}
@@ -110,6 +183,116 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
                     Logout
                 </Button>
             </div>
+
+            {/* Change Password Dialog Modal */}
+            <Dialog
+                open={isPasswordModalOpen}
+                onOpenChange={setIsPasswordModalOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-blue-950 flex items-center gap-2">
+                            <KeyRound className="w-5 h-5 text-orange-500" />
+                            Change Admin Password
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <form onSubmit={handleUpdatePassword} className="space-y-4 pt-2">
+                        {/* Current (Last Used) Password */}
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="sidebar-current-pwd"
+                                className="text-xs font-bold text-slate-700">
+                                Last Used (Current) Password *
+                            </Label>
+                            <div className="relative">
+                                <Input
+                                    id="sidebar-current-pwd"
+                                    type={showCurrent ? "text" : "password"}
+                                    placeholder="Enter your current password"
+                                    value={currentPwd}
+                                    onChange={(e) => setCurrentPwd(e.target.value)}
+                                    className="pr-10 rounded-xl"
+                                    required
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCurrent(!showCurrent)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    {showCurrent ? (
+                                        <EyeOff className="w-4 h-4" />
+                                    ) : (
+                                        <Eye className="w-4 h-4" />
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* New Password */}
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="sidebar-new-pwd"
+                                className="text-xs font-bold text-slate-700">
+                                New Password *
+                            </Label>
+                            <div className="relative">
+                                <Input
+                                    id="sidebar-new-pwd"
+                                    type={showNew ? "text" : "password"}
+                                    placeholder="Enter new password (min. 4 characters)"
+                                    value={newPwd}
+                                    onChange={(e) => setNewPwd(e.target.value)}
+                                    className="pr-10 rounded-xl"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNew(!showNew)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    {showNew ? (
+                                        <EyeOff className="w-4 h-4" />
+                                    ) : (
+                                        <Eye className="w-4 h-4" />
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Confirm New Password */}
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="sidebar-confirm-pwd"
+                                className="text-xs font-bold text-slate-700">
+                                Confirm New Password *
+                            </Label>
+                            <Input
+                                id="sidebar-confirm-pwd"
+                                type="password"
+                                placeholder="Re-enter new password"
+                                value={confirmPwd}
+                                onChange={(e) => setConfirmPwd(e.target.value)}
+                                className="rounded-xl"
+                                required
+                            />
+                        </div>
+
+                        <DialogFooter className="gap-2 sm:gap-0 pt-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsPasswordModalOpen(false)}
+                                className="rounded-xl text-xs">
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="rounded-xl bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white text-xs font-semibold shadow-sm">
+                                Save New Password
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
