@@ -15,6 +15,7 @@ import {
     CheckCircle2,
     Sparkles,
     Layers,
+    Images,
 } from "lucide-react";
 import {
     useSiteTeam,
@@ -22,6 +23,7 @@ import {
     useSiteContact,
     useSitePrograms,
     useSiteServices,
+    useSiteAlbums,
     useSiteBlogs,
     useSiteEnquiries,
 } from "@/lib/siteData";
@@ -32,6 +34,7 @@ const Dashboard = () => {
     const contact = useSiteContact();
     const programs = useSitePrograms();
     const services = useSiteServices();
+    const albums = useSiteAlbums();
     const blogs = useSiteBlogs();
     const enquiries = useSiteEnquiries();
 
@@ -222,6 +225,15 @@ const Dashboard = () => {
                             className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs">
                             <Layers className="w-3.5 h-3.5 mr-1.5" />
                             Key Services
+                        </Button>
+                    </Link>
+                    <Link to="/admin/gallery">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-orange-200 text-orange-700 hover:bg-orange-50 text-xs">
+                            <Images className="w-3.5 h-3.5 mr-1.5" />
+                            Gallery Albums ({albums.length})
                         </Button>
                     </Link>
                     <Link to="/admin/blogs/new">

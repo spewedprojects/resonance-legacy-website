@@ -9,17 +9,21 @@ import {
     Phone,
     Mail,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ResonanceLogo from "../components/ui/ResonanceLogo";
+import TeamSection from "@/components/TeamSection";
+import { useSiteSettings } from "@/lib/siteData";
 
 const About = () => {
+    const settings = useSiteSettings();
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100">
             <Navbar />
 
             {/* Header */}
-
             <section className="pt-32 pb-12 text-center">
                 <div className="max-w-4xl mx-auto px-6">
                     <h1 className="text-4xl md:text-5xl font-bold text-[#2E5C9D] mb-2">
@@ -174,54 +178,14 @@ const About = () => {
                 </div>
             </section>
 
-            {/* Team / Leadership */}
-            {/* <section className="py-16 bg-gradient-to-br from-blue-50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#2E5C9D]">Leadership & Team</h2>
-            <p className="text-gray-600 mt-2">
-              The people powering the mission.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { name: "Vivek Sinare", role: "Managing Director", img: null },
-              { name: "Imran Bagwan", role: "Manager - Compliance", img: null },
-              { name: "Arundhati Katdare", role: "HEAD - HR Operations and L&D", img: null },
-              { name: "Kirti Katti", role: "Assistant Manager - Talent Acquisition & Compliance", img: null },
-              { name: "Vishakha Patil", role: "Assistant Manager - Client Relations & Business Development", img: null },
-              { name: "Chaitrali Badan", role: "Chief Manager - HR Operations & Data Analytics", img: null },
-              { name: "Pratima Singh", role: "Chief Manager - MMR", img: null },
-              { name: "Vijeta Sharma", role: "Manager - Talent Acquisition Officer", img: null },
-              { name: "Shreya Pimperkar", role: "Assistant Manager - Talent Acquisition", img: null },
-              { name: "Manasi Abhyankar", role: "Team Associate", img: null },
-              { name: "Shrushti Naik", role: "Talent Acquisition - Interns", img: null },
-              { name: "Sejal Mirajkar", role: "Talent Acquisition - Interns", img: null },
-              { name: "Priynka Mule", role: "Assistant Manager - Talent Acquisition", img: null },
-            ].map((member, idx) => (
-              <div
-                key={idx}
-                className="bg-white rounded-2xl p-6 shadow hover:shadow-xl transition flex flex-col items-center text-center"
-              >
-                <div className="w-28 h-28 mb-4 rounded-full overflow-hidden border-4 border-gradient-to-br from-orange-500 to-red-600">
-                  <img
-                    src={member.img}
-                    alt={member.name}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = "/media/avatar-placeholder.png";
-                    }}
-                  />
-                </div>
-                <h3 className="text-lg font-bold text-[#1f3d7a]">{member.name}</h3>
-                <p className="text-sm text-gray-600">{member.role}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section> */}
+            {/* Dynamic Team Section */}
+            {settings.showTeamOnAbout && (
+                <TeamSection
+                    title="Our Dedicated"
+                    highlightWord="Team"
+                    subtitle="Meet the leaders, mentors, and experts shaping entrepreneurship and workforce readiness."
+                />
+            )}
 
             {/* Call to Action */}
             <section className="py-16">
@@ -234,17 +198,14 @@ const About = () => {
                         talent — there's a place for you in the movement.
                     </p>
                     <div className="inline-flex gap-4 flex-wrap justify-center">
-                        <button className="px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow hover:scale-105 transition">
+                        <Link
+                            to="/contact"
+                            className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                             Partner With Us
-                        </button>
-                        <button className="px-8 py-4 rounded-full border border-blue-600 text-blue-600 font-semibold hover:bg-blue-50 transition">
-                            Learn More
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </section>
-
-            {/* Spacer / Footer padding */}
 
             {/* Footer */}
             <Footer />

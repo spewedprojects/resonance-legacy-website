@@ -66,6 +66,21 @@ export interface Enquiry {
     status: "new" | "read" | "replied";
 }
 
+export interface Album {
+    id: string;
+    title: string;
+    description: string;
+    date: string;
+    coverImage: string;
+    images: string[];
+    location?: string;
+}
+
+export interface SiteSettings {
+    showTeamOnHome: boolean;
+    showTeamOnAbout: boolean;
+}
+
 export const DEFAULT_ADVISORS: Advisor[] = [
     {
         id: "adv-1",
@@ -373,6 +388,74 @@ export const DEFAULT_BLOGS: BlogPost[] = [
     },
 ];
 
+export const DEFAULT_ALBUMS: Album[] = [
+    {
+        id: "album-1",
+        title: "National Apprenticeship Workshop",
+        description:
+            "Interactive technical workshop bringing together college students, academic deans, and corporate HR partners to explore NATS & NAPS apprentice frameworks, stipend structures, and modern industrial talent models.",
+        date: "February 2026",
+        location: "Pune Industrial Hub",
+        coverImage: "/gallery/1.svg",
+        images: [
+            "/gallery/1.svg",
+            "/gallery/3.svg",
+            "/gallery/4.svg",
+            "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=1200&auto=format&fit=crop",
+        ],
+    },
+    {
+        id: "album-2",
+        title: "Campus Entrepreneurship Bootcamp",
+        description:
+            "3-day experiential innovation bootcamp where student teams turned concepts into viable pitch decks, backed by mentor-led business modeling, MVP design, and investor simulation reviews.",
+        date: "January 2026",
+        location: "PCCOE Campus, Pune",
+        coverImage: "/gallery/2.svg",
+        images: [
+            "/gallery/2.svg",
+            "/gallery/5.svg",
+            "/gallery/6.svg",
+            "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200&auto=format&fit=crop",
+        ],
+    },
+    {
+        id: "album-3",
+        title: "Startup Mentoring & Demo Day",
+        description:
+            "High-energy demo day and strategic advisory session connecting early-stage regional ventures with angel networks, technical architects, and enterprise buyers for scaling support.",
+        date: "December 2025",
+        location: "Resonance Incubation Center",
+        coverImage: "/gallery/7.svg",
+        images: [
+            "/gallery/7.svg",
+            "/gallery/8.svg",
+            "/gallery/2.svg",
+            "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1200&auto=format&fit=crop",
+        ],
+    },
+    {
+        id: "album-4",
+        title: "CSR Skill Initiative Launch",
+        description:
+            "Formal inauguration and community orientation of vocational training centers in collaboration with manufacturing and industrial partners across Maharashtra.",
+        date: "November 2025",
+        location: "Bhosari Industrial Area",
+        coverImage: "/gallery/5.svg",
+        images: [
+            "/gallery/5.svg",
+            "/gallery/1.svg",
+            "/gallery/3.svg",
+            "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1200&auto=format&fit=crop",
+        ],
+    },
+];
+
+export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+    showTeamOnHome: false,
+    showTeamOnAbout: true,
+};
+
 export const DEFAULT_ENQUIRIES: Enquiry[] = [
     {
         _id: "enq-1",
@@ -404,6 +487,8 @@ const STORAGE_KEYS = {
     SERVICES: "resonance_services_data",
     BLOGS: "resonance_blogs_data",
     ENQUIRIES: "resonance_enquiries_data",
+    ALBUMS: "resonance_albums_data",
+    SETTINGS: "resonance_site_settings_data",
 };
 
 // Dispatch custom event to notify all components in the current tab
@@ -656,6 +741,58 @@ export const updateEnquiryStatus = (id: string, status: "new" | "read" | "replie
     return updated;
 };
 
+// ALBUMS
+export const getStoredAlbums = (): Album[] => {
+    if (typeof window === "undefined") return DEFAULT_ALBUMS;
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.ALBUMS);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch (e) {
+        console.error("Error reading albums from localStorage", e);
+    }
+    return DEFAULT_ALBUMS;
+};
+
+export const saveStoredAlbums = (albums: Album[]) => {
+    if (typeof window === "undefined") return;
+    try {
+        localStorage.setItem(STORAGE_KEYS.ALBUMS, JSON.stringify(albums));
+        notifyDataChange(STORAGE_KEYS.ALBUMS);
+    } catch (e) {
+        console.error("Error saving albums to localStorage", e);
+    }
+};
+
+// SETTINGS
+export const getStoredSettings = (): SiteSettings => {
+    if (typeof window === "undefined") return DEFAULT_SITE_SETTINGS;
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (parsed && typeof parsed === "object") {
+                return { ...DEFAULT_SITE_SETTINGS, ...parsed };
+            }
+        }
+    } catch (e) {
+        console.error("Error reading settings from localStorage", e);
+    }
+    return DEFAULT_SITE_SETTINGS;
+};
+
+export const saveStoredSettings = (settings: SiteSettings) => {
+    if (typeof window === "undefined") return;
+    try {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+        notifyDataChange(STORAGE_KEYS.SETTINGS);
+    } catch (e) {
+        console.error("Error saving settings to localStorage", e);
+    }
+};
+
 export const resetAllSiteData = () => {
     if (typeof window === "undefined") return;
     localStorage.removeItem(STORAGE_KEYS.ADVISORS);
@@ -817,6 +954,56 @@ export const useSiteBlogs = () => {
     }, []);
 
     return blogs;
+};
+
+export const useSiteAlbums = () => {
+    const [albums, setAlbums] = useState<Album[]>(getStoredAlbums);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.ALBUMS ||
+                customEvent.detail.key === "all"
+            ) {
+                setAlbums(getStoredAlbums());
+            }
+        };
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return albums;
+};
+
+export const useSiteSettings = () => {
+    const [settings, setSettings] = useState<SiteSettings>(getStoredSettings);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.SETTINGS ||
+                customEvent.detail.key === "all"
+            ) {
+                setSettings(getStoredSettings());
+            }
+        };
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return settings;
 };
 
 export const useSiteEnquiries = () => {

@@ -10,6 +10,7 @@ import {
     BookOpen,
     ExternalLink,
     Layers,
+    Images,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
         { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
         { href: "/admin/programs", label: "Core Programs", icon: BookOpen },
         { href: "/admin/services", label: "Key Services", icon: Layers },
+        { href: "/admin/gallery", label: "Gallery Albums", icon: Images },
         { href: "/admin/team", label: "Team Members", icon: Users },
         { href: "/admin/advisory", label: "Advisory Board", icon: Award },
         { href: "/admin/contact", label: "Contact Details", icon: Phone },

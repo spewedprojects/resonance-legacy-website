@@ -21,6 +21,7 @@ import ManageAdvisory from "./pages/admin/ManageAdvisory";
 import ManageContact from "./pages/admin/ManageContact";
 import ManagePrograms from "./pages/admin/ManagePrograms";
 import ManageServices from "./pages/admin/ManageServices";
+import ManageGallery from "./pages/admin/ManageGallery";
 import Enquiries from "./pages/admin/Enquiries";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
                         <Route index element={<Dashboard />} />
                         <Route path="programs" element={<ManagePrograms />} />
                         <Route path="services" element={<ManageServices />} />
+                        <Route path="gallery" element={<ManageGallery />} />
                         <Route path="team" element={<ManageTeam />} />
                         <Route path="advisory" element={<ManageAdvisory />} />
                         <Route path="contact" element={<ManageContact />} />
