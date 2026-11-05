@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const navItems = [
     { id: "home", label: "Home", path: "/" },
@@ -50,6 +51,12 @@ const Navbar = () => {
 
     const toggleMenu = () => setIsMenuOpen((o) => !o);
 
+    const handleERPClick = () => {
+        toast.info("ERP Portal is currently under integration.", {
+            description: "Staff and candidate ERP login will be enabled shortly.",
+        });
+    };
+
     return (
         <>
             {/* Desktop Navbar */}
@@ -92,6 +99,18 @@ const Navbar = () => {
                                 {item.label}
                             </button>
                         ))}
+
+                        {/* Desktop ERP Placeholder Button */}
+                        <button
+                            type="button"
+                            onClick={handleERPClick}
+                            className="ml-2 px-4 py-2.5 rounded-full font-bold text-xs bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+                            title="Enterprise Resource Planning Portal">
+                            <span>ERP</span>
+                            <span className="text-[9px] bg-white/25 px-1.5 py-0.5 rounded-full uppercase tracking-wider font-extrabold">
+                                Portal
+                            </span>
+                        </button>
                     </div>
                 </div>
             </nav>
@@ -173,6 +192,18 @@ const Navbar = () => {
                                 {item.label}
                             </button>
                         ))}
+
+                        {/* Desktop ERP Placeholder Button */}
+                        <button
+                            type="button"
+                            onClick={handleERPClick}
+                            className="ml-2 px-4 py-2.5 rounded-full font-bold text-xs bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+                            title="Enterprise Resource Planning Portal">
+                            <span>ERP</span>
+                            <span className="text-[9px] bg-white/25 px-1.5 py-0.5 rounded-full uppercase tracking-wider font-extrabold">
+                                Portal
+                            </span>
+                        </button>
                     </div>
                 </div>
             </nav>

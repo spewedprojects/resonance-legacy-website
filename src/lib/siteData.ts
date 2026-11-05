@@ -26,6 +26,46 @@ export interface ContactInfo {
     companyName: string;
 }
 
+export interface Service {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    color: string;
+}
+
+export interface Program {
+    id: string;
+    title: string;
+    code: string;
+    description: string;
+    icon: string;
+    gradient: string;
+}
+
+export interface BlogPost {
+    _id: string;
+    title: string;
+    subtitle: string;
+    slug: string;
+    content: string;
+    excerpt: string;
+    author: string;
+    image: string;
+    tags: string[];
+    createdAt: string;
+}
+
+export interface Enquiry {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+    message: string;
+    createdAt: string;
+    status: "new" | "read" | "replied";
+}
+
 export const DEFAULT_ADVISORS: Advisor[] = [
     {
         id: "adv-1",
@@ -194,10 +234,176 @@ export const DEFAULT_CONTACT: ContactInfo = {
     companyName: "Resonance Entrepreneurship & Employability Solutions Pvt. Ltd.",
 };
 
+export const DEFAULT_PROGRAMS: Program[] = [
+    {
+        id: "prog-1",
+        title: "National Apprenticeship Training Scheme",
+        code: "NATS",
+        description:
+            "A premier government-backed skill-development initiative providing technically qualified graduates and diploma holders with structured, on-the-job training in recognized industrial establishments.",
+        icon: "GraduationCap",
+        gradient: "from-blue-500 to-blue-600",
+    },
+    {
+        id: "prog-2",
+        title: "National Apprenticeship Promotion Scheme",
+        code: "NAPS",
+        description:
+            "Incentivizes businesses to engage apprentices by providing financial stipends, policy support, and simplified compliance, creating a strong talent pipeline across key sectors.",
+        icon: "TrendingUp",
+        gradient: "from-orange-500 to-orange-600",
+    },
+    {
+        id: "prog-3",
+        title: "Apprenticeship Embedded Degree Program",
+        code: "AEDP",
+        description:
+            "Integrates accredited university degree curricula directly with corporate apprenticeship assignments, allowing students to earn stipends while acquiring workplace-ready domain skills.",
+        icon: "Award",
+        gradient: "from-green-500 to-green-600",
+    },
+    {
+        id: "prog-4",
+        title: "Work Integrated Skills Training & Apprenticeships",
+        code: "WISTA",
+        description:
+            "Tailor-made corporate capacity building models connecting fresh academic talent with specialized enterprise technologies, fast-tracking employability and organizational onboarding.",
+        icon: "Building",
+        gradient: "from-purple-500 to-purple-600",
+    },
+];
+
+export const DEFAULT_SERVICES: Service[] = [
+    {
+        id: "serv-1",
+        title: "Skilled Workforce Sourcing & Onboarding",
+        description:
+            "We help organisations identify, source and onboard skilled and experienced professionals to meet their workforce requirements. Our support covers candidate sourcing, screening, coordination, offer management and induction to ensure a smooth hiring process.",
+        icon: "Users",
+        color: "from-blue-500 to-blue-600",
+    },
+    {
+        id: "serv-2",
+        title: "Customize Skill Development Program",
+        description:
+            "We design and facilitate customised skill development programmes based on organisational requirements and identified competency gaps. Our services include training needs assessment, module development, training calendars, programme delivery and effectiveness assessment.",
+        icon: "Code",
+        color: "from-orange-500 to-orange-600",
+    },
+    {
+        id: "serv-3",
+        title: "Campus Entrepreneurship Program",
+        description:
+            "We work with educational institutions to nurture entrepreneurial thinking and develop an enterprising mindset among students. Through structured learning, practical exposure and industry engagement, we help students explore entrepreneurship and develop the skills to turn ideas into viable ventures.",
+        icon: "GraduationCap",
+        color: "from-green-500 to-green-600",
+    },
+    {
+        id: "serv-4",
+        title: "Startup Mentoring & Fundraising",
+        description:
+            "We support emerging startups in navigating their early stages through business mentoring, strategic guidance and fundraising assistance. Our focus is on helping entrepreneurs strengthen their business models, explore funding opportunities and build sustainable ventures.",
+        icon: "Rocket",
+        color: "from-purple-500 to-purple-600",
+    },
+    {
+        id: "serv-5",
+        title: "Incubation Support & Handholding",
+        description:
+            "We provide structured support to aspiring entrepreneurs and early-stage ventures through incubation assistance, business development guidance and access to relevant resources and networks. We help translate ideas into actionable plans and support ventures through their growth journey.",
+        icon: "HandHeart",
+        color: "from-red-500 to-red-600",
+    },
+    {
+        id: "serv-6",
+        title: "CSR Project Implementation",
+        description:
+            "We support organisations in planning, coordinating and implementing CSR initiatives aligned with their social impact objectives. Our approach focuses on programme execution, stakeholder coordination, monitoring and documentation to facilitate effective implementation.",
+        icon: "FileText",
+        color: "from-indigo-500 to-indigo-600",
+    },
+];
+
+export const DEFAULT_BLOGS: BlogPost[] = [
+    {
+        _id: "blog-1",
+        title: "The Future of Apprenticeships in Modern Industry",
+        subtitle: "How integrated work-learning models are transforming talent pipelines in 2026",
+        slug: "future-of-apprenticeships-modern-industry",
+        content: `
+            <p>Apprenticeships are rapidly evolving beyond traditional manufacturing setups into high-tech domains like IT, supply chain analytics, and healthcare services.</p>
+            <h3>Why Work-Integrated Learning Matters</h3>
+            <p>Industry leaders cite the widening skills gap as one of their primary operational hurdles. By incorporating apprenticeship models such as NATS and NAPS, companies directly train candidates on their technology stack.</p>
+            <ul>
+                <li><strong>Reduced Onboarding Time:</strong> Graduates are already familiar with company tools and culture.</li>
+                <li><strong>Government Incentives:</strong> Financial support and structured compliance under national skill initiatives.</li>
+                <li><strong>Higher Retention Rates:</strong> Apprentices show 35% higher 3-year retention compared to walk-in hires.</li>
+            </ul>
+            <p>As India continues its transformation into a global manufacturing and knowledge powerhouse, work-integrated education will remain at the forefront.</p>
+        `,
+        excerpt:
+            "Discover how integrated work-learning models like NATS and NAPS are bridging the talent gap and accelerating corporate productivity.",
+        author: "Resonance Team",
+        image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200&auto=format&fit=crop",
+        tags: ["Apprenticeship", "Skill Development", "Industry"],
+        createdAt: "2026-02-15T10:00:00.000Z",
+    },
+    {
+        _id: "blog-2",
+        title: "Empowering Rural Entrepreneurs Through Targeted Mentorship",
+        subtitle: "Unlocking grassroot innovation with strategic advisory and venture support",
+        slug: "empowering-rural-entrepreneurs-mentorship",
+        content: `
+            <p>Grassroots innovation is thriving across Tier 2 and Tier 3 regions in India. With the right strategic guidance, local ventures can scale into sustainable, high-revenue enterprises.</p>
+            <h3>Core Pillars of Venture Incubation</h3>
+            <p>Resonance focuses on three fundamental pillars when mentoring early-stage founders:</p>
+            <ol>
+                <li><strong>Financial Literacy & Credit Access:</strong> Connecting founders with formal banking channels and MSME schemes.</li>
+                <li><strong>Supply Chain Integration:</strong> Linking regional producers to national markets and corporate buyers.</li>
+                <li><strong>Digital Transformation:</strong> Leveraging modern ERP and inventory tooling for seamless operations.</li>
+            </ol>
+            <p>Together, inclusive growth and mentorship build self-reliant regional economies.</p>
+        `,
+        excerpt:
+            "A closer look at how targeted incubation and advisory help Tier 2/3 founders build scalable businesses.",
+        author: "Resonance Insights",
+        image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=1200&auto=format&fit=crop",
+        tags: ["Entrepreneurship", "Mentorship", "Startups"],
+        createdAt: "2026-01-28T09:30:00.000Z",
+    },
+];
+
+export const DEFAULT_ENQUIRIES: Enquiry[] = [
+    {
+        _id: "enq-1",
+        name: "Siddharth Verma",
+        email: "siddharth.v@acme-corp.com",
+        phone: "+91 9823456780",
+        message:
+            "We are looking to implement the NATS apprenticeship scheme for 50 trainee engineers in Pune. Kindly share details on onboarding and stipend subsidies.",
+        createdAt: "2026-03-01T11:20:00.000Z",
+        status: "new",
+    },
+    {
+        _id: "enq-2",
+        name: "Pooja Deshmukh",
+        email: "pooja.d@techhub.in",
+        phone: "+91 9876543210",
+        message:
+            "Interested in collaborating on the Campus Entrepreneurship Program for our engineering batch. Would love to schedule a discussion this week.",
+        createdAt: "2026-02-24T14:45:00.000Z",
+        status: "read",
+    },
+];
+
 const STORAGE_KEYS = {
     ADVISORS: "resonance_advisors_data",
     TEAM: "resonance_team_data",
     CONTACT: "resonance_contact_data",
+    PROGRAMS: "resonance_programs_data",
+    SERVICES: "resonance_services_data",
+    BLOGS: "resonance_blogs_data",
+    ENQUIRIES: "resonance_enquiries_data",
 };
 
 // Dispatch custom event to notify all components in the current tab
@@ -207,6 +413,7 @@ const notifyDataChange = (key: string) => {
     }
 };
 
+// ADVISORS
 export const getStoredAdvisors = (): Advisor[] => {
     if (typeof window === "undefined") return DEFAULT_ADVISORS;
     try {
@@ -231,6 +438,7 @@ export const saveStoredAdvisors = (advisors: Advisor[]) => {
     }
 };
 
+// TEAM
 export const getStoredTeam = (): TeamMember[] => {
     if (typeof window === "undefined") return DEFAULT_TEAM;
     try {
@@ -255,6 +463,7 @@ export const saveStoredTeam = (team: TeamMember[]) => {
     }
 };
 
+// CONTACT
 export const getStoredContact = (): ContactInfo => {
     if (typeof window === "undefined") return DEFAULT_CONTACT;
     try {
@@ -279,11 +488,183 @@ export const saveStoredContact = (contact: ContactInfo) => {
     }
 };
 
+// SERVICES
+export const getStoredServices = (): Service[] => {
+    if (typeof window === "undefined") return DEFAULT_SERVICES;
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.SERVICES);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch (e) {
+        console.error("Error reading services from localStorage", e);
+    }
+    return DEFAULT_SERVICES;
+};
+
+export const saveStoredServices = (services: Service[]) => {
+    if (typeof window === "undefined") return;
+    try {
+        localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(services));
+        notifyDataChange(STORAGE_KEYS.SERVICES);
+    } catch (e) {
+        console.error("Error saving services to localStorage", e);
+    }
+};
+
+// PROGRAMS
+export const getStoredPrograms = (): Program[] => {
+    if (typeof window === "undefined") return DEFAULT_PROGRAMS;
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.PROGRAMS);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch (e) {
+        console.error("Error reading programs from localStorage", e);
+    }
+    return DEFAULT_PROGRAMS;
+};
+
+export const saveStoredPrograms = (programs: Program[]) => {
+    if (typeof window === "undefined") return;
+    try {
+        localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
+        notifyDataChange(STORAGE_KEYS.PROGRAMS);
+    } catch (e) {
+        console.error("Error saving programs to localStorage", e);
+    }
+};
+
+// BLOGS
+export const getStoredBlogs = (): BlogPost[] => {
+    if (typeof window === "undefined") return DEFAULT_BLOGS;
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.BLOGS);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch (e) {
+        console.error("Error reading blogs from localStorage", e);
+    }
+    return DEFAULT_BLOGS;
+};
+
+export const saveStoredBlogs = (blogs: BlogPost[]) => {
+    if (typeof window === "undefined") return;
+    try {
+        localStorage.setItem(STORAGE_KEYS.BLOGS, JSON.stringify(blogs));
+        notifyDataChange(STORAGE_KEYS.BLOGS);
+    } catch (e) {
+        console.error("Error saving blogs to localStorage", e);
+    }
+};
+
+export const saveSingleBlog = (blog: Omit<BlogPost, "_id" | "createdAt"> & { _id?: string }) => {
+    const blogs = getStoredBlogs();
+    let updated: BlogPost[];
+    if (blog._id) {
+        updated = blogs.map((b) =>
+            b._id === blog._id
+                ? {
+                      ...b,
+                      ...blog,
+                      _id: blog._id!,
+                      createdAt: b.createdAt || new Date().toISOString(),
+                  }
+                : b,
+        );
+    } else {
+        const newPost: BlogPost = {
+            ...blog,
+            _id: `blog-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+        };
+        updated = [newPost, ...blogs];
+    }
+    saveStoredBlogs(updated);
+    return updated;
+};
+
+export const deleteStoredBlog = (id: string) => {
+    const blogs = getStoredBlogs();
+    const updated = blogs.filter((b) => b._id !== id);
+    saveStoredBlogs(updated);
+    return updated;
+};
+
+// ENQUIRIES
+export const getStoredEnquiries = (): Enquiry[] => {
+    if (typeof window === "undefined") return DEFAULT_ENQUIRIES;
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.ENQUIRIES);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch (e) {
+        console.error("Error reading enquiries from localStorage", e);
+    }
+    return DEFAULT_ENQUIRIES;
+};
+
+export const saveStoredEnquiries = (enquiries: Enquiry[]) => {
+    if (typeof window === "undefined") return;
+    try {
+        localStorage.setItem(STORAGE_KEYS.ENQUIRIES, JSON.stringify(enquiries));
+        notifyDataChange(STORAGE_KEYS.ENQUIRIES);
+    } catch (e) {
+        console.error("Error saving enquiries to localStorage", e);
+    }
+};
+
+export const addEnquiry = (enquiryData: {
+    name: string;
+    email: string;
+    phone: string;
+    message: string;
+}): Enquiry => {
+    const enquiries = getStoredEnquiries();
+    const newEnquiry: Enquiry = {
+        _id: `enq-${Date.now()}`,
+        name: enquiryData.name.trim(),
+        email: enquiryData.email.trim(),
+        phone: enquiryData.phone.trim(),
+        message: enquiryData.message.trim(),
+        createdAt: new Date().toISOString(),
+        status: "new",
+    };
+    const updated = [newEnquiry, ...enquiries];
+    saveStoredEnquiries(updated);
+    return newEnquiry;
+};
+
+export const deleteStoredEnquiry = (id: string) => {
+    const enquiries = getStoredEnquiries();
+    const updated = enquiries.filter((e) => e._id !== id);
+    saveStoredEnquiries(updated);
+    return updated;
+};
+
+export const updateEnquiryStatus = (id: string, status: "new" | "read" | "replied") => {
+    const enquiries = getStoredEnquiries();
+    const updated = enquiries.map((e) => (e._id === id ? { ...e, status } : e));
+    saveStoredEnquiries(updated);
+    return updated;
+};
+
 export const resetAllSiteData = () => {
     if (typeof window === "undefined") return;
     localStorage.removeItem(STORAGE_KEYS.ADVISORS);
     localStorage.removeItem(STORAGE_KEYS.TEAM);
     localStorage.removeItem(STORAGE_KEYS.CONTACT);
+    localStorage.removeItem(STORAGE_KEYS.PROGRAMS);
+    localStorage.removeItem(STORAGE_KEYS.SERVICES);
+    localStorage.removeItem(STORAGE_KEYS.BLOGS);
+    localStorage.removeItem(STORAGE_KEYS.ENQUIRIES);
     notifyDataChange("all");
 };
 
@@ -294,7 +675,11 @@ export const useSiteAdvisors = () => {
     useEffect(() => {
         const handler = (e: Event) => {
             const customEvent = e as CustomEvent;
-            if (!customEvent.detail || customEvent.detail.key === STORAGE_KEYS.ADVISORS || customEvent.detail.key === "all") {
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.ADVISORS ||
+                customEvent.detail.key === "all"
+            ) {
                 setAdvisors(getStoredAdvisors());
             }
         };
@@ -315,7 +700,11 @@ export const useSiteTeam = () => {
     useEffect(() => {
         const handler = (e: Event) => {
             const customEvent = e as CustomEvent;
-            if (!customEvent.detail || customEvent.detail.key === STORAGE_KEYS.TEAM || customEvent.detail.key === "all") {
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.TEAM ||
+                customEvent.detail.key === "all"
+            ) {
                 setTeam(getStoredTeam());
             }
         };
@@ -336,7 +725,11 @@ export const useSiteContact = () => {
     useEffect(() => {
         const handler = (e: Event) => {
             const customEvent = e as CustomEvent;
-            if (!customEvent.detail || customEvent.detail.key === STORAGE_KEYS.CONTACT || customEvent.detail.key === "all") {
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.CONTACT ||
+                customEvent.detail.key === "all"
+            ) {
                 setContact(getStoredContact());
             }
         };
@@ -351,8 +744,112 @@ export const useSiteContact = () => {
     return contact;
 };
 
+export const useSiteServices = () => {
+    const [services, setServices] = useState<Service[]>(getStoredServices);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.SERVICES ||
+                customEvent.detail.key === "all"
+            ) {
+                setServices(getStoredServices());
+            }
+        };
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return services;
+};
+
+export const useSitePrograms = () => {
+    const [programs, setPrograms] = useState<Program[]>(getStoredPrograms);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.PROGRAMS ||
+                customEvent.detail.key === "all"
+            ) {
+                setPrograms(getStoredPrograms());
+            }
+        };
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return programs;
+};
+
+export const useSiteBlogs = () => {
+    const [blogs, setBlogs] = useState<BlogPost[]>(getStoredBlogs);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.BLOGS ||
+                customEvent.detail.key === "all"
+            ) {
+                setBlogs(getStoredBlogs());
+            }
+        };
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return blogs;
+};
+
+export const useSiteEnquiries = () => {
+    const [enquiries, setEnquiries] = useState<Enquiry[]>(getStoredEnquiries);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.ENQUIRIES ||
+                customEvent.detail.key === "all"
+            ) {
+                setEnquiries(getStoredEnquiries());
+            }
+        };
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return enquiries;
+};
+
 // Helper function to resize and compress uploaded image files to base64 Data URLs
-export const processImageFile = (file: File, maxWidth = 500, quality = 0.85): Promise<string> => {
+export const processImageFile = (
+    file: File,
+    maxWidth = 500,
+    quality = 0.85,
+): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -377,7 +874,6 @@ export const processImageFile = (file: File, maxWidth = 500, quality = 0.85): Pr
                     return;
                 }
                 ctx.drawImage(img, 0, 0, width, height);
-                // Return compressed webp or jpeg Data URL
                 const dataUrl = canvas.toDataURL("image/jpeg", quality);
                 resolve(dataUrl);
             };

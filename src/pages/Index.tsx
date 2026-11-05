@@ -18,17 +18,68 @@ import {
     Factory,
     Handshake,
     Mouse,
+    Minus,
+    ArrowLeft,
+    ArrowRight,
+    Grid,
+    Layers,
+    Sparkles,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import ResonanceLogo from "../components/ui/ResonanceLogo";
 import ResonanceLogoNav from "../components/ui/ResonanceLogoNav";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useSiteAdvisors, useSiteTeam } from "@/lib/siteData";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import {
+    useSiteAdvisors,
+    useSiteTeam,
+    useSitePrograms,
+    useSiteServices,
+} from "@/lib/siteData";
+
+const SERVICE_ICONS: Record<string, React.ElementType> = {
+    Users,
+    Code,
+    GraduationCap,
+    Rocket,
+    HandHeart,
+    FileText,
+    Briefcase,
+    Sparkles,
+    Building,
+    Target,
+    Award,
+    TrendingUp,
+};
 
 const Index = () => {
     const advisors = useSiteAdvisors();
     const team = useSiteTeam();
+    const programs = useSitePrograms();
+    const services = useSiteServices();
+    const [expandedProgramId, setExpandedProgramId] = useState<string | null>(null);
+    const [isServicesDialogOpen, setIsServicesDialogOpen] = useState(false);
+    const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+
+    const activeService =
+        services.find((s) => s.id === selectedServiceId) || services[0];
+    const ActiveServiceIcon = activeService
+        ? SERVICE_ICONS[activeService.icon] || Briefcase
+        : Briefcase;
+
+    const toggleProgram = (id: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setExpandedProgramId((prev) => (prev === id ? null : id));
+    };
 
     return (
         <div className="min-h-screen">
@@ -108,7 +159,7 @@ const Index = () => {
                         <div className="relative">
                             <div className="w-56 sm:w-60 md:w-72 lg:w-[30rem] h-auto relative">
                                 <img
-                                    src="/images/page1/logo.jpg"
+                                    src="/images/page1/resonancelogo.svg"
                                     alt="Logo"
                                     className="w-full h-auto object-contain"
                                 />
@@ -362,57 +413,96 @@ const Index = () => {
 
             {/* Core Programs Section */}
             <section className="h-auto flex flex-col items-center justify-center px-4 sm:px-6 md:px-12 lg:px-16 py-10 lg:py-20">
-                <div className="flex justify-center items-center px-4 sm:px-6 lg:px-16 mt-10">
+                <div className="flex flex-col justify-center items-center px-4 sm:px-6 lg:px-16 mt-10 text-center">
                     <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-[#2E5C9D] text-center">
                         Core <span className="font-normal">Programs</span>
                     </h1>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-2 max-w-xl">
+                        Click on any program card below to view its objectives and curriculum. Click <strong>"-"</strong> to minimize.
+                    </p>
                 </div>
                 <div className="max-w-7xl w-full text-center">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mt-10">
-                        {/* Card 1 */}
-                        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-shadow">
-                            <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl mx-auto mb-4">
-                                <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                            </div>
-                            <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-2">
-                                National Apprenticeship Training Scheme
-                            </h3>
-                            <p className="text-gray-600">(NATS)</p>
-                        </div>
+                        {programs.map((program) => {
+                            const isExpanded = expandedProgramId === program.id;
+                            const IconComponent =
+                                program.icon === "TrendingUp"
+                                    ? TrendingUp
+                                    : program.icon === "Award"
+                                        ? Award
+                                        : program.icon === "Building"
+                                            ? Building
+                                            : GraduationCap;
 
-                        {/* Card 2 */}
-                        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-shadow">
-                            <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl mx-auto mb-4">
-                                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                            </div>
-                            <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-2">
-                                National Apprenticeship Promotion Scheme
-                            </h3>
-                            <p className="text-gray-600">(NAPS)</p>
-                        </div>
+                            return (
+                                <div
+                                    key={program.id}
+                                    onClick={() => toggleProgram(program.id)}
+                                    className={`relative bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 text-center flex flex-col justify-center min-h-[220px] sm:min-h-[240px] cursor-pointer group border-2 ${isExpanded
+                                            ? "border-blue-500 shadow-xl bg-gradient-to-b from-white to-blue-50/40 ring-1 ring-blue-400"
+                                            : "border-transparent hover:border-blue-100"
+                                        }`}>
+                                    {/* Minimize Button in Top-Right Corner */}
+                                    {isExpanded && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => toggleProgram(program.id, e)}
+                                            className="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors shadow-sm cursor-pointer z-10"
+                                            title="Minimize and hide description">
+                                            <Minus className="w-4 h-4 font-bold" />
+                                        </button>
+                                    )}
 
-                        {/* Card 3 */}
-                        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-shadow">
-                            <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl mx-auto mb-4">
-                                <Award className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                            </div>
-                            <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-2">
-                                Apprenticeship Embedded Degree Program
-                            </h3>
-                            <p className="text-gray-600">(AEDP)</p>
-                        </div>
+                                    {!isExpanded ? (
+                                        /* Default State: Large Title & Icon */
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div
+                                                className={`flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br ${program.gradient} rounded-xl mx-auto mb-4 text-white shadow-sm group-hover:scale-105 transition-transform`}>
+                                                <IconComponent className="w-6 h-6 sm:w-8 sm:h-8" />
+                                            </div>
+                                            <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-1 group-hover:text-blue-700 transition-colors">
+                                                {program.title}
+                                            </h3>
+                                            <p className="text-sm font-semibold text-gray-500">
+                                                ({program.code})
+                                            </p>
+                                            <span className="text-[11px] text-blue-600 font-medium mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                Click to expand details →
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        /* Expanded State: Title Shrinks, Description appears in the same card space */
+                                        <div className="text-left flex flex-col h-full animate-in fade-in duration-300">
+                                            <div className="flex items-center gap-3 pr-8">
+                                                <div
+                                                    className={`flex items-center justify-center w-9 h-9 bg-gradient-to-br ${program.gradient} rounded-lg text-white shrink-0`}>
+                                                    <IconComponent className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm sm:text-base font-bold text-blue-950 leading-tight">
+                                                        {program.title}
+                                                    </h3>
+                                                    <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">
+                                                        ({program.code})
+                                                    </span>
+                                                </div>
+                                            </div>
 
-                        {/* Card 4 */}
-                        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-shadow">
-                            <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl mx-auto mb-4">
-                                <Building className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                            </div>
-                            <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-2">
-                                Work Integrated Skills Training &
-                                Apprenticeships
-                            </h3>
-                            <p className="text-gray-600">(WISTA)</p>
-                        </div>
+                                            <div className="mt-3 pt-3 border-t border-slate-200/80">
+                                                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed text-justify">
+                                                    {program.description}
+                                                </p>
+                                            </div>
+
+                                            <div className="mt-auto pt-3 flex items-center justify-between text-[11px] text-gray-400">
+                                                <span>Click "-" at top-right to minimize</span>
+                                                <span className="text-blue-600 font-semibold">Active Details</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </section>
@@ -428,58 +518,37 @@ const Index = () => {
                         <div className="w-16 sm:w-20 h-1 bg-gradient-to-r from-orange-500 to-red-600 rounded mx-auto" />
                     </div>
 
-                    {/* Services Grid */}
+                    {/* Services Grid (Shows existing 6 as cards) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
-                        {/* Service Cards */}
-                        {[
-                            {
-                                icon: Users,
-                                title: "Skilled Workforce Sourcing & Onboarding",
-                                color: "from-blue-500 to-blue-600",
-                            },
-                            {
-                                icon: Code,
-                                title: "Customize Skill Development Program",
-                                color: "from-orange-500 to-orange-600",
-                            },
-                            {
-                                icon: GraduationCap,
-                                title: "Campus Entrepreneurship Program",
-                                color: "from-green-500 to-green-600",
-                            },
-                            {
-                                icon: Rocket,
-                                title: "Startup Mentoring & Fundraising",
-                                color: "from-purple-500 to-purple-600",
-                            },
-                            {
-                                icon: HandHeart,
-                                title: "Incubation Support & Handholding",
-                                color: "from-red-500 to-red-600",
-                            },
-                            {
-                                icon: FileText,
-                                title: "CSR Project Implementation",
-                                color: "from-indigo-500 to-indigo-600",
-                            },
-                        ].map((item, idx) => (
-                            <div
-                                key={idx}
-                                className="bg-white rounded-2xl p-5 sm:p-6 shadow-lg hover:shadow-xl transition-shadow">
+                        {services.slice(0, 6).map((item, idx) => {
+                            const ItemIcon = SERVICE_ICONS[item.icon] || Briefcase;
+                            return (
                                 <div
-                                    className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${item.color} rounded-xl mx-auto mb-4`}>
-                                    <item.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                                    key={item.id || idx}
+                                    onClick={() => {
+                                        setSelectedServiceId(item.id);
+                                        setIsServicesDialogOpen(true);
+                                    }}
+                                    className="bg-white rounded-2xl p-5 sm:p-6 shadow-lg hover:shadow-xl transition-all cursor-pointer group hover:-translate-y-1 text-center">
+                                    <div
+                                        className={`flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${item.color} rounded-xl mx-auto mb-4 group-hover:scale-105 transition-transform`}>
+                                        <ItemIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                                    </div>
+                                    <h3 className="text-base sm:text-lg font-semibold sm:font-bold text-blue-900 group-hover:text-blue-700 transition-colors">
+                                        {item.title}
+                                    </h3>
                                 </div>
-                                <h3 className="text-base sm:text-lg font-semibold sm:font-bold text-blue-900">
-                                    {item.title}
-                                </h3>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* CTA Button */}
                     <div className="pt-10">
                         <Button
+                            onClick={() => {
+                                setSelectedServiceId(null);
+                                setIsServicesDialogOpen(true);
+                            }}
                             size="lg"
                             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                             View All Services
@@ -487,6 +556,170 @@ const Index = () => {
                     </div>
                 </div>
             </section>
+
+            {/* Services Detailed Dialog Modal */}
+            <Dialog
+                open={isServicesDialogOpen}
+                onOpenChange={(open) => {
+                    setIsServicesDialogOpen(open);
+                    if (!open) setSelectedServiceId(null);
+                }}>
+                <DialogContent className="max-w-4xl lg:max-w-5xl w-[95vw] p-5 sm:p-7 max-h-[88vh] flex flex-col overflow-hidden">
+                    <DialogHeader className="pb-3 border-b border-slate-100 shrink-0 text-left">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-6">
+                            <div>
+                                <DialogTitle className="text-xl sm:text-2xl font-bold text-blue-950 flex items-center gap-2">
+                                    <Layers className="w-5 h-5 text-blue-600" />
+                                    Our Key Services
+                                </DialogTitle>
+                                <DialogDescription className="text-xs sm:text-sm text-gray-500 mt-1">
+                                    {selectedServiceId
+                                        ? "Select a service from the left list to explore its scope and implementation details."
+                                        : "Explore our workforce, entrepreneurship, and venture development offerings. Click any service to view full details."}
+                                </DialogDescription>
+                            </div>
+                            {selectedServiceId && (
+                                <button
+                                    onClick={() => setSelectedServiceId(null)}
+                                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shrink-0">
+                                    <Grid className="w-3.5 h-3.5 text-slate-500" />
+                                    View All in Grid
+                                </button>
+                            )}
+                        </div>
+                    </DialogHeader>
+
+                    {/* Dialog Content Area */}
+                    <div className="flex-1 overflow-y-auto pt-4 pr-1">
+                        {!selectedServiceId ? (
+                            /* DEFAULT VIEW: ALL IN A GRID */
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {services.map((service) => {
+                                        const IconComp = SERVICE_ICONS[service.icon] || Briefcase;
+                                        return (
+                                            <div
+                                                key={service.id}
+                                                onClick={() => setSelectedServiceId(service.id)}
+                                                className="bg-slate-50/70 hover:bg-white rounded-2xl p-5 border border-slate-200/80 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between text-left">
+                                                <div>
+                                                    <div
+                                                        className={`w-11 h-11 bg-gradient-to-br ${service.color} rounded-xl flex items-center justify-center text-white mb-3 shadow-sm group-hover:scale-105 transition-transform`}>
+                                                        <IconComp className="w-5 h-5" />
+                                                    </div>
+                                                    <h3 className="text-sm sm:text-base font-bold text-blue-950 group-hover:text-blue-700 transition-colors mb-2 leading-snug">
+                                                        {service.title}
+                                                    </h3>
+                                                    <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">
+                                                        {service.description}
+                                                    </p>
+                                                </div>
+
+                                                <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs text-blue-600 font-semibold group-hover:translate-x-0.5 transition-transform">
+                                                    <span>View Details</span>
+                                                    <ArrowRight className="w-3.5 h-3.5" />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ) : (
+                            /* DETAIL VIEW: LIST ON LEFT, DESCRIPTION ON RIGHT */
+                            <div className="flex flex-col md:flex-row gap-5 min-h-[380px]">
+                                {/* Left Side: Services List */}
+                                <div className="md:w-5/12 lg:w-4/12 flex flex-col shrink-0 border-b md:border-b-0 md:border-r border-slate-200 pb-4 md:pb-0 md:pr-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <button
+                                            onClick={() => setSelectedServiceId(null)}
+                                            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
+                                            <ArrowLeft className="w-3.5 h-3.5" />
+                                            Back to Grid View
+                                        </button>
+                                        <span className="text-[11px] font-semibold text-slate-400">
+                                            {services.length} Services
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-2 overflow-y-auto max-h-[220px] md:max-h-[50vh] pr-1">
+                                        {services.map((item) => {
+                                            const isSelected = item.id === (activeService ? activeService.id : "");
+                                            const ItemIcon = SERVICE_ICONS[item.icon] || Briefcase;
+                                            return (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    onClick={() => setSelectedServiceId(item.id)}
+                                                    className={`w-full text-left p-2.5 sm:p-3 rounded-xl transition-all flex items-center gap-3 border ${
+                                                        isSelected
+                                                            ? "bg-blue-50/90 border-blue-500 text-blue-950 shadow-sm ring-1 ring-blue-500/20"
+                                                            : "bg-white border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                                                    }`}>
+                                                    <div
+                                                        className={`w-8 h-8 rounded-lg bg-gradient-to-br ${item.color} text-white flex items-center justify-center shrink-0`}>
+                                                        <ItemIcon className="w-4 h-4" />
+                                                    </div>
+                                                    <span
+                                                        className={`text-xs sm:text-sm leading-snug line-clamp-2 ${
+                                                            isSelected
+                                                                ? "font-bold text-blue-950"
+                                                                : "font-medium text-slate-700"
+                                                        }`}>
+                                                        {item.title}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Right Side: Active Service Description & Details */}
+                                {activeService && (
+                                    <div className="md:w-7/12 lg:w-8/12 flex flex-col justify-between overflow-y-auto pr-1">
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-4">
+                                                <div
+                                                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${activeService.color} text-white flex items-center justify-center shadow-md shrink-0`}>
+                                                    <ActiveServiceIcon className="w-7 h-7" />
+                                                </div>
+                                                <div>
+                                                    <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 mb-1">
+                                                        Service Scope
+                                                    </span>
+                                                    <h3 className="text-lg sm:text-xl font-bold text-blue-950 leading-snug">
+                                                        {activeService.title}
+                                                    </h3>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                                    Detailed Description
+                                                </h4>
+                                                <p className="text-sm sm:text-base text-gray-700 leading-relaxed text-justify">
+                                                    {activeService.description}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                                            <span className="text-xs text-gray-500">
+                                                Interested in collaborating or onboarding?
+                                            </span>
+                                            <Link
+                                                to="/contact"
+                                                onClick={() => setIsServicesDialogOpen(false)}
+                                                className="inline-flex items-center gap-2 px-4 py-2 bg-[#2E5C9D] hover:bg-blue-800 text-white text-xs font-semibold rounded-xl shadow-sm transition-colors">
+                                                Contact Our Team <ArrowRight className="w-3.5 h-3.5" />
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Industry Partners Section */}
             <section className="h-auto bg-gradient-to-br from-blue-50 via-white to-blue-100 flex justify-center px-4 sm:px-6 md:px-12 lg:px-16 py-10">

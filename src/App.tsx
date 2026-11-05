@@ -19,6 +19,9 @@ import BlogEditor from "./pages/admin/BlogEditor";
 import ManageTeam from "./pages/admin/ManageTeam";
 import ManageAdvisory from "./pages/admin/ManageAdvisory";
 import ManageContact from "./pages/admin/ManageContact";
+import ManagePrograms from "./pages/admin/ManagePrograms";
+import ManageServices from "./pages/admin/ManageServices";
+import Enquiries from "./pages/admin/Enquiries";
 
 const queryClient = new QueryClient();
 
@@ -39,10 +42,12 @@ const App = () => (
 
                     <Route path="/admin" element={<AdminLayout />}>
                         <Route index element={<Dashboard />} />
+                        <Route path="programs" element={<ManagePrograms />} />
+                        <Route path="services" element={<ManageServices />} />
                         <Route path="team" element={<ManageTeam />} />
                         <Route path="advisory" element={<ManageAdvisory />} />
                         <Route path="contact" element={<ManageContact />} />
-                        <Route path="enquiries" element={<Dashboard />} />
+                        <Route path="enquiries" element={<Enquiries />} />
                         <Route path="blogs" element={<BlogList />} />
                         <Route path="blogs/new" element={<BlogEditor />} />
                         <Route path="blogs/edit/:id" element={<BlogEditor />} />
