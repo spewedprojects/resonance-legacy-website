@@ -24,6 +24,7 @@ import {
     useSitePrograms,
     useSiteServices,
     useSiteAlbums,
+    useSiteEvents,
     useSiteBlogs,
     useSiteEnquiries,
 } from "@/lib/siteData";
@@ -35,6 +36,7 @@ const Dashboard = () => {
     const programs = useSitePrograms();
     const services = useSiteServices();
     const albums = useSiteAlbums();
+    const events = useSiteEvents();
     const blogs = useSiteBlogs();
     const enquiries = useSiteEnquiries();
 
@@ -68,7 +70,7 @@ const Dashboard = () => {
             </div>
 
             {/* Quick Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 {/* Core Programs Metric */}
                 <Card className="bg-white rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
@@ -113,6 +115,31 @@ const Dashboard = () => {
                             <Link
                                 to="/admin/services"
                                 className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1">
+                                Manage <ArrowRight className="w-3 h-3" />
+                            </Link>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Events & Portal Metric */}
+                <Card className="bg-white rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                Events
+                            </span>
+                            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                                <Calendar className="w-5 h-5" />
+                            </div>
+                        </div>
+                        <div className="text-3xl font-extrabold text-blue-950 mt-2">
+                            {events.length}
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-xs text-gray-500">Live listings</span>
+                            <Link
+                                to="/admin/events"
+                                className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
                                 Manage <ArrowRight className="w-3 h-3" />
                             </Link>
                         </div>
@@ -225,6 +252,15 @@ const Dashboard = () => {
                             className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs">
                             <Layers className="w-3.5 h-3.5 mr-1.5" />
                             Key Services
+                        </Button>
+                    </Link>
+                    <Link to="/admin/events">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-blue-200 text-blue-700 hover:bg-blue-50 text-xs">
+                            <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                            Events & Portal ({events.length})
                         </Button>
                     </Link>
                     <Link to="/admin/gallery">

@@ -24,7 +24,9 @@ import ManageContact from "./pages/admin/ManageContact";
 import ManagePrograms from "./pages/admin/ManagePrograms";
 import ManageServices from "./pages/admin/ManageServices";
 import ManageGallery from "./pages/admin/ManageGallery";
+import ManageEvents from "./pages/admin/ManageEvents";
 import Enquiries from "./pages/admin/Enquiries";
+import Events from "./pages/Events";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,7 @@ const App = () => {
                 <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/gallery" element={<Gallery />} />
+                    <Route path="/events" element={<Events />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/login" element={<Login />} />
@@ -65,6 +68,7 @@ const App = () => {
                         <Route path="programs" element={<ManagePrograms />} />
                         <Route path="services" element={<ManageServices />} />
                         <Route path="gallery" element={<ManageGallery />} />
+                        <Route path="events" element={<ManageEvents />} />
                         <Route path="team" element={<ManageTeam />} />
                         <Route path="advisory" element={<ManageAdvisory />} />
                         <Route path="contact" element={<ManageContact />} />

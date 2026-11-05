@@ -1,9 +1,10 @@
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, ExternalLink, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useSiteContact } from "@/lib/siteData";
+import { useSiteContact, useSiteEventsConfig } from "@/lib/siteData";
 
 const Footer = () => {
     const contact = useSiteContact();
+    const eventsConfig = useSiteEventsConfig();
 
     return (
         <footer className="bg-gray-900 text-white py-12 px-6 md:px-12 lg:px-16">
@@ -41,6 +42,25 @@ const Footer = () => {
                                     to="/blog"
                                     className="hover:text-orange-400 transition-colors">
                                     Blog
+                                </Link>
+                            </li>
+                            <li>
+                                <a
+                                    href={eventsConfig.portalUrl || "https://events.theresonance.co.in"}
+                                    target={eventsConfig.portalUrl?.startsWith("http") ? "_blank" : undefined}
+                                    rel={eventsConfig.portalUrl?.startsWith("http") ? "noopener noreferrer" : undefined}
+                                    className="hover:text-orange-400 transition-colors inline-flex items-center gap-1.5 font-medium">
+                                    <span>Events</span>
+                                    {eventsConfig.portalUrl?.startsWith("http") && (
+                                        <ExternalLink className="w-3 h-3 text-orange-400/80" />
+                                    )}
+                                </a>
+                            </li>
+                            <li>
+                                <Link
+                                    to="/events"
+                                    className="hover:text-orange-400 text-gray-400 text-xs transition-colors pl-2 border-l border-slate-700">
+                                    Browse Events
                                 </Link>
                             </li>
                             <li>

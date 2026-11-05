@@ -81,6 +81,26 @@ export interface SiteSettings {
     showTeamOnAbout: boolean;
 }
 
+export interface ResonanceEvent {
+    id: string;
+    title: string;
+    subtitle?: string;
+    purpose: string;
+    description: string;
+    bannerImage: string;
+    date: string;
+    time?: string;
+    venue: string;
+    category?: string;
+    status: "upcoming" | "ongoing" | "completed";
+    registrationSnippet?: string;
+    registrationUrl?: string;
+}
+
+export interface EventsConfig {
+    portalUrl: string;
+}
+
 export const DEFAULT_ADVISORS: Advisor[] = [
     {
         id: "adv-1",
@@ -479,6 +499,49 @@ export const DEFAULT_ENQUIRIES: Enquiry[] = [
     },
 ];
 
+export const DEFAULT_EVENTS_CONFIG: EventsConfig = {
+    portalUrl: "https://events.theresonance.co.in",
+};
+
+export const DEFAULT_EVENTS: ResonanceEvent[] = [
+    {
+        id: "event-1",
+        title: "National Apprenticeship & Skill Conclave 2026",
+        subtitle: "Bridging the Academia-Industry Talent Gap through NATS & NAPS Frameworks",
+        purpose:
+            "Connecting 150+ manufacturing and tech enterprises with over 2,000 engineering and diploma apprentices, enabling on-the-spot offer rollouts and compliance handholding.",
+        description:
+            "A full-day flagship conclave featuring keynote addresses by MSCI leaders, panel discussions on work-integrated degree models (AEDP/WISTA), and structured corporate networking lounges. Organizations will receive practical guidance on stipend reimbursement and apprenticeship capacity expansion.",
+        bannerImage:
+            "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop",
+        date: "March 28, 2026",
+        time: "09:30 AM - 05:30 PM IST",
+        venue: "Auto Cluster Exhibition Centre, Chinchwad, Pune",
+        category: "Conclave",
+        status: "upcoming",
+        registrationSnippet: "<a href=\"https://events.theresonance.co.in\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#ff5722,#e64a19);color:#ffffff;font-family:sans-serif;font-size:13px;font-weight:700;padding:10px 22px;border-radius:9999px;text-decoration:none;box-shadow:0 4px 12px rgba(230,74,25,0.3);transition:all 0.2s ease;\"><span>Register on Konfhub</span><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></a>",
+        registrationUrl: "https://events.theresonance.co.in",
+    },
+    {
+        id: "event-2",
+        title: "Campus Entrepreneurship & Venture Pitch Fest",
+        subtitle: "Empowering Next-Gen Student Founders to Build Scalable Enterprises",
+        purpose:
+            "Incubating student venture ideas, providing seed funding readiness assessments, and linking early-stage collegiate founders with seasoned angels and industry mentors.",
+        description:
+            "An intense 2-day startup summit comprising prototype demonstrations, rapid business modeling workshops, and a live pitch competition in front of early-stage venture funds and ecosystem leaders.",
+        bannerImage:
+            "https://images.unsplash.com/photo-1515187029135-18ee286d815b?q=80&w=1200&auto=format&fit=crop",
+        date: "April 18, 2026",
+        time: "10:00 AM - 04:30 PM IST",
+        venue: "Resonance Innovation Auditorium, Pune & Online Streaming",
+        category: "Bootcamp",
+        status: "upcoming",
+        registrationSnippet: "<a href=\"https://events.theresonance.co.in\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#ffffff;font-family:sans-serif;font-size:13px;font-weight:700;padding:10px 22px;border-radius:9999px;text-decoration:none;box-shadow:0 4px 12px rgba(37,99,235,0.3);transition:all 0.2s ease;\"><span>Register via Konfhub</span><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></a>",
+        registrationUrl: "https://events.theresonance.co.in",
+    },
+];
+
 const STORAGE_KEYS = {
     ADVISORS: "resonance_advisors_data",
     TEAM: "resonance_team_data",
@@ -489,6 +552,8 @@ const STORAGE_KEYS = {
     ENQUIRIES: "resonance_enquiries_data",
     ALBUMS: "resonance_albums_data",
     SETTINGS: "resonance_site_settings_data",
+    EVENTS_CONFIG: "resonance_events_config",
+    EVENTS: "resonance_events_data",
 };
 
 // API endpoint for cloud hosting environments (Netlify / AWS / Custom Backend)
@@ -854,6 +919,60 @@ export const saveStoredSettings = (settings: SiteSettings) => {
     }
 };
 
+// EVENTS CONFIG
+export const getStoredEventsConfig = (): EventsConfig => {
+    if (typeof window === "undefined") return DEFAULT_EVENTS_CONFIG;
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.EVENTS_CONFIG);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (parsed && typeof parsed === "object") {
+                return { ...DEFAULT_EVENTS_CONFIG, ...parsed };
+            }
+        }
+    } catch (e) {
+        console.error("Error reading events config from localStorage", e);
+    }
+    return DEFAULT_EVENTS_CONFIG;
+};
+
+export const saveStoredEventsConfig = (config: EventsConfig) => {
+    if (typeof window === "undefined") return;
+    try {
+        localStorage.setItem(STORAGE_KEYS.EVENTS_CONFIG, JSON.stringify(config));
+        notifyDataChange(STORAGE_KEYS.EVENTS_CONFIG);
+        syncToCloud(STORAGE_KEYS.EVENTS_CONFIG, config);
+    } catch (e) {
+        console.error("Error saving events config to localStorage", e);
+    }
+};
+
+// EVENTS
+export const getStoredEvents = (): ResonanceEvent[] => {
+    if (typeof window === "undefined") return DEFAULT_EVENTS;
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.EVENTS);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch (e) {
+        console.error("Error reading events from localStorage", e);
+    }
+    return DEFAULT_EVENTS;
+};
+
+export const saveStoredEvents = (events: ResonanceEvent[]) => {
+    if (typeof window === "undefined") return;
+    try {
+        localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+        notifyDataChange(STORAGE_KEYS.EVENTS);
+        syncToCloud(STORAGE_KEYS.EVENTS, events);
+    } catch (e) {
+        console.error("Error saving events to localStorage", e);
+    }
+};
+
 export const resetAllSiteData = () => {
     if (typeof window === "undefined") return;
     localStorage.removeItem(STORAGE_KEYS.ADVISORS);
@@ -1065,6 +1184,56 @@ export const useSiteSettings = () => {
     }, []);
 
     return settings;
+};
+
+export const useSiteEventsConfig = () => {
+    const [config, setConfig] = useState<EventsConfig>(getStoredEventsConfig);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.EVENTS_CONFIG ||
+                customEvent.detail.key === "all"
+            ) {
+                setConfig(getStoredEventsConfig());
+            }
+        };
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return config;
+};
+
+export const useSiteEvents = () => {
+    const [events, setEvents] = useState<ResonanceEvent[]>(getStoredEvents);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (
+                !customEvent.detail ||
+                customEvent.detail.key === STORAGE_KEYS.EVENTS ||
+                customEvent.detail.key === "all"
+            ) {
+                setEvents(getStoredEvents());
+            }
+        };
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return events;
 };
 
 export const useSiteEnquiries = () => {
