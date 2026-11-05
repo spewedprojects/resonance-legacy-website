@@ -55,19 +55,23 @@ const Navbar = () => {
             {/* Desktop Navbar */}
             <nav className="hidden md:flex fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
                 <div className="bg-background/90 backdrop-blur-md border border-border rounded-full px-2 py-2 shadow-lg flex items-center space-x-4">
-                    {/* Logo */}
-                    <div className="flex items-center px-4">
+                    {/* Logo - Clickable to return to homescreen */}
+                    <button
+                        type="button"
+                        onClick={() => handleItemClick("home", "/")}
+                        className="flex items-center px-4 cursor-pointer focus:outline-none transition-transform hover:scale-105 active:scale-95 group text-left"
+                        title="Return to Homescreen">
                         <div className="w-20 h-8 relative">
                             <img
-                                className="w-16 h-full"
+                                className="w-16 h-full object-contain"
                                 src="/media/resonanceLogoNav.png"
                                 alt="Logo"
                             />
                         </div>
-                        <span className="ml-2 font-bold text-lg text-foreground">
+                        <span className="ml-2 font-bold text-lg text-foreground group-hover:text-primary transition-colors">
                             RESONANCE
                         </span>
-                    </div>
+                    </button>
 
                     {/* Navigation Items */}
                     <div className="flex items-center space-x-1">
@@ -91,6 +95,26 @@ const Navbar = () => {
                     </div>
                 </div>
             </nav>
+
+            {/* Mobile Clickable Logo */}
+            <div className="md:hidden fixed top-4 left-4 z-50">
+                <button
+                    type="button"
+                    onClick={() => handleItemClick("home", "/")}
+                    className="bg-background/90 backdrop-blur-md border border-border rounded-full px-3 py-2 shadow-lg flex items-center space-x-2 transition-transform hover:scale-105 active:scale-95"
+                    title="Return to Homescreen">
+                    <div className="w-7 h-7 relative flex items-center justify-center">
+                        <img
+                            className="w-full h-full object-contain"
+                            src="/media/resonanceLogoNav.png"
+                            alt="Logo"
+                        />
+                    </div>
+                    <span className="font-bold text-xs text-foreground tracking-wider">
+                        RESONANCE
+                    </span>
+                </button>
+            </div>
 
             {/* Mobile Navbar */}
             <nav className="md:hidden fixed top-4 right-4 z-50">

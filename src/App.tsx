@@ -16,6 +16,9 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import BlogList from "./pages/admin/BlogList";
 import BlogEditor from "./pages/admin/BlogEditor";
+import ManageTeam from "./pages/admin/ManageTeam";
+import ManageAdvisory from "./pages/admin/ManageAdvisory";
+import ManageContact from "./pages/admin/ManageContact";
 
 const queryClient = new QueryClient();
 
@@ -23,21 +26,22 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
         <TooltipProvider>
             <Toaster />
-            <Sonner />
+            <Sonner position="top-right" richColors />
             <BrowserRouter>
                 <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/gallery" element={<Gallery />} />
                     <Route path="/about" element={<About />} />
-
                     <Route path="/contact" element={<Contact />} />
-
                     <Route path="/login" element={<Login />} />
                     <Route path="/blog" element={<Blog />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />
 
                     <Route path="/admin" element={<AdminLayout />}>
                         <Route index element={<Dashboard />} />
+                        <Route path="team" element={<ManageTeam />} />
+                        <Route path="advisory" element={<ManageAdvisory />} />
+                        <Route path="contact" element={<ManageContact />} />
                         <Route path="enquiries" element={<Dashboard />} />
                         <Route path="blogs" element={<BlogList />} />
                         <Route path="blogs/new" element={<BlogEditor />} />

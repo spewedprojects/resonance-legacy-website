@@ -1,6 +1,10 @@
 import { Mail, Phone, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useSiteContact } from "@/lib/siteData";
 
 const Footer = () => {
+    const contact = useSiteContact();
+
     return (
         <footer className="bg-gray-900 text-white py-12 px-6 md:px-12 lg:px-16">
             <div className="max-w-6xl mx-auto">
@@ -11,7 +15,7 @@ const Footer = () => {
                             RESONANCE
                         </h3>
                         <p className="text-gray-300 mb-4">
-                            Entrepreneurship & Employability Solutions Pvt. Ltd.
+                            {contact.companyName}
                         </p>
                         <p className="text-gray-400 text-sm">
                             Empowering businesses and individuals through
@@ -26,39 +30,46 @@ const Footer = () => {
                         </h4>
                         <ul className="space-y-2 text-gray-300">
                             <li>
-                                <a
-                                    href="/"
+                                <Link
+                                    to="/"
                                     className="hover:text-orange-400 transition-colors">
                                     Home
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="/blog"
+                                <Link
+                                    to="/blog"
                                     className="hover:text-orange-400 transition-colors">
                                     Blog
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="/about"
+                                <Link
+                                    to="/about"
                                     className="hover:text-orange-400 transition-colors">
                                     About Us
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="/gallery"
+                                <Link
+                                    to="/gallery"
                                     className="hover:text-orange-400 transition-colors">
                                     Gallery
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="/contact"
+                                <Link
+                                    to="/contact"
                                     className="hover:text-orange-400 transition-colors">
                                     Contact
-                                </a>
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    to="/admin"
+                                    className="hover:text-orange-400 text-gray-500 transition-colors">
+                                    Admin Login
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -70,16 +81,24 @@ const Footer = () => {
                         </h4>
                         <div className="space-y-3 text-gray-300">
                             <div className="flex items-center">
-                                <Mail className="h-4 w-4 mr-3 text-orange-400" />
-                                <span>apply.theresonance@gmail.com</span>
+                                <Mail className="h-4 w-4 mr-3 text-orange-400 shrink-0" />
+                                <a
+                                    href={`mailto:${contact.email}`}
+                                    className="hover:underline truncate">
+                                    {contact.email}
+                                </a>
                             </div>
                             <div className="flex items-center">
-                                <Phone className="h-4 w-4 mr-3 text-orange-400" />
-                                <span>+91 6366824350</span>
+                                <Phone className="h-4 w-4 mr-3 text-orange-400 shrink-0" />
+                                <a
+                                    href={`tel:${contact.phone.replace(/[^0-9+]/g, "")}`}
+                                    className="hover:underline">
+                                    {contact.phone}
+                                </a>
                             </div>
                             <div className="flex items-center">
-                                <MapPin className="h-4 w-4 mr-3 text-orange-400" />
-                                <span>Pune, India</span>
+                                <MapPin className="h-4 w-4 mr-3 text-orange-400 shrink-0" />
+                                <span>{contact.address}</span>
                             </div>
                         </div>
                     </div>
@@ -87,8 +106,7 @@ const Footer = () => {
 
                 <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
                     <p>
-                        &copy; 2025 Resonance Entrepreneurship & Employability
-                        Solutions Pvt. Ltd. All rights reserved.
+                        &copy; {new Date().getFullYear()} {contact.companyName}. All rights reserved.
                     </p>
                 </div>
             </div>

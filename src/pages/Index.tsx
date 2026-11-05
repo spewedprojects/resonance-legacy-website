@@ -24,8 +24,12 @@ import ResonanceLogo from "../components/ui/ResonanceLogo";
 import ResonanceLogoNav from "../components/ui/ResonanceLogoNav";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useSiteAdvisors, useSiteTeam } from "@/lib/siteData";
 
 const Index = () => {
+    const advisors = useSiteAdvisors();
+    const team = useSiteTeam();
+
     return (
         <div className="min-h-screen">
             <Navbar />
@@ -720,55 +724,17 @@ const Index = () => {
 
                     {/* Advisory Cards Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {[
-                            {
-                                name: "DR. MILIND KAMBLE",
-                                img: "/images/advisers/7.svg",
-                                desc: "Leading entrepreneur and visionary strategist pioneering transformative entrepreneurial landscape through inclusive growth and MSCI leadership.",
-                            },
-                            {
-                                name: "ATUL KULKARNI",
-                                img: "/images/advisers/3.svg",
-                                desc: "Techno-managerial expert with 35+ years in rural credit, banking and policy, specializing in supply chain and global markets.",
-                            },
-                            {
-                                name: "VAIBHAV DANGE",
-                                img: "/images/advisers/1.svg",
-                                desc: "Change agent with expertise in government CSR, sustainable development, and strategic planning.",
-                            },
-                            {
-                                name: "RITA SEN GUPTA",
-                                img: "/images/advisers/2.svg",
-                                desc: "Former HR-CEO renowned expert in skill development and experience training 1500 professionals in entrepreneurship.",
-                            },
-                            {
-                                name: "SUMITRA GOENKA",
-                                img: "/images/advisers/6.svg",
-                                desc: "Entrepreneur, Director & CEO managing Storage & Logistics, UiImg Pvt Ltd, and more. Growth architect & NSE listed company.",
-                            },
-                            {
-                                name: "RAJENDRA BAGADE",
-                                img: "/images/advisers/4.svg",
-                                desc: "Senior Chartered Accountant with expertise in MNCs, PSUs, FPOs, and FPCs across diverse industries.",
-                            },
-                            {
-                                name: "SAARA A TOMAR",
-                                img: "/images/advisers/8.svg",
-                                desc: "Startup mentor and edtech founder with 20+ years in sales, marketing, and strategic planning.",
-                            },
-                            {
-                                name: "NARENDRA GODSE",
-                                img: "/images/advisers/5.svg",
-                                desc: "Startup mentor and public sector advisor with 20+ years in sales, marketing, and strategy.",
-                            },
-                        ].map((advisor, i) => (
+                        {advisors.map((advisor, i) => (
                             <div
-                                key={i}
+                                key={advisor.id || i}
                                 className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow text-left">
                                 <img
                                     src={advisor.img}
                                     alt={advisor.name}
                                     className="w-20 h-20 rounded-full mx-auto mb-4 object-cover"
+                                    onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).src = "/images/advisers/1.svg";
+                                    }}
                                 />
                                 <h3 className="text-lg font-bold text-blue-900 mb-2 text-center">
                                     {advisor.name}
@@ -795,107 +761,9 @@ const Index = () => {
 
                     {/* Team Cards Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {[
-                            {
-                                name: "Vivek Sinare",
-                                position: "Managing Director",
-                                img: null,
-                                contact: "8766825520",
-                                email: "viveksinare@theresonance.co.in",
-                            },
-                            {
-                                name: "Imran Bagwan",
-                                position: "Manager - Compliance",
-                                img: null,
-                                contact: "7030910333",
-                                email: "imran@theresonance.co.in",
-                            },
-                            {
-                                name: "Arundhati Katdare",
-                                position: "HEAD - HR Operations and L&D",
-                                img: null,
-                                contact: "9850742620",
-                                email: "arundhati@theresonance.co.in",
-                            },
-                            {
-                                name: "Kirti Katti",
-                                position:
-                                    "Assistant Manager - Talent Acquisition & Compliance",
-                                img: null,
-                                contact: "7758979161",
-                                email: "kirti@theresonance.co.in",
-                            },
-                            {
-                                name: "Vishakha Patil",
-                                position:
-                                    "Assistant Manager - Client Relations & Business Development",
-                                img: null,
-                                contact: "7758979167",
-                                email: "vishakha@theresonance.co.in",
-                            },
-                            {
-                                name: "Chaitrali Badan",
-                                position:
-                                    "Chief Manager - HR Operations & Data Analytics",
-                                img: null,
-                                contact: "9890625021",
-                                email: "chaitrali@theresonance.co.in",
-                            },
-                            {
-                                name: "Pratima Singh",
-                                position: "Chief Manager - MMR",
-                                img: null,
-                                contact: "8108129569",
-                                email: "pratima@theresonance.co.in",
-                            },
-                            {
-                                name: "Vijeta Sharma",
-                                position:
-                                    "Manager - Talent Acquisition Officer",
-                                img: null,
-                                contact: "9665196719",
-                                email: "vijeta@theresonance.co.in",
-                            },
-                            {
-                                name: "Shreya Pimperkar",
-                                position:
-                                    "Assistant Manager - Talent Acquisition",
-                                img: null,
-                                contact: "9156691613",
-                                email: "shreya.theresonance@gmail.com",
-                            },
-                            {
-                                name: "Manasi Abhyankar",
-                                position: "Team Associate",
-                                img: null,
-                                contact: "7709008581",
-                                email: null,
-                            },
-                            {
-                                name: "Shrushti Naik",
-                                position: "Talent Acquisition - Interns",
-                                img: null,
-                                contact: "7758906191",
-                                email: "shrushti.theresonance@gmail.com",
-                            },
-                            {
-                                name: "Sejal Mirajkar",
-                                position: "Talent Acquisition - Interns",
-                                img: null,
-                                contact: "7758979163",
-                                email: "sejal.resonance@gmail.com",
-                            },
-                            {
-                                name: "Priynka Mule",
-                                position:
-                                    "Assistant Manager - Talent Acquisition",
-                                img: null,
-                                contact: "8655940092",
-                                email: "priya.theresonance@gmail.com",
-                            },
-                        ].map((member, i) => (
+                        {team.map((member, i) => (
                             <div
-                                key={i}
+                                key={member.id || i}
                                 className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow text-center flex flex-col items-center">
                                 <div className="w-24 h-24 rounded-full mb-4 overflow-hidden bg-gray-200 flex items-center justify-center border-2 border-blue-100">
                                     {member.img ? (
@@ -903,6 +771,9 @@ const Index = () => {
                                             src={member.img}
                                             alt={member.name}
                                             className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                (e.currentTarget as HTMLImageElement).src = "/media/resonanceLogoNav.png";
+                                            }}
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-white flex items-center justify-center">
