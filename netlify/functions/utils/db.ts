@@ -1,15 +1,9 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-    throw new Error('Please define the MONGODB_URI environment variable inside .env');
-}
-
 /**
  * Global is used here to maintain a cached connection across hot reloads
- * in development. This prevents connections from growing exponentially
- * during API Route usage.
+ * in development and serverless invocations. This prevents connections
+ * from growing exponentially during API Route usage.
  */
 let cached = (global as any).mongoose;
 
@@ -18,6 +12,12 @@ if (!cached) {
 }
 
 async function connectDB() {
+    const MONGODB_URI = process.env.MONGODB_URI;
+
+    if (!MONGODB_URI) {
+        throw new Error('MONGODB_URI environment variable is not defined.');
+    }
+
     if (cached.conn) {
         return cached.conn;
     }
@@ -27,7 +27,7 @@ async function connectDB() {
             bufferCommands: false,
         };
 
-        cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+        cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
             return mongoose;
         });
     }
@@ -47,6 +47,7 @@ const Enquiry = mongoose.models.Enquiry || mongoose.model('Enquiry', EnquirySche
 
 const BlogSchema = new mongoose.Schema({
     title: { type: String, required: true },
+    subtitle: { type: String },
     slug: { type: String, required: true, unique: true },
     content: { type: String, required: true },
     excerpt: { type: String },
@@ -59,4 +60,14 @@ const BlogSchema = new mongoose.Schema({
 
 const Blog = mongoose.models.Blog || mongoose.model('Blog', BlogSchema);
 
-export { connectDB, Enquiry, Blog };
+// Generic SiteContent Schema for all dynamic sections (Advisory, Team, Contact, Programs, Services, Albums, Settings)
+const SiteContentSchema = new mongoose.Schema({
+    key: { type: String, required: true, unique: true },
+    data: { type: mongoose.Schema.Types.Mixed, required: true },
+}, {
+    timestamps: true
+});
+
+const SiteContent = mongoose.models.SiteContent || mongoose.model('SiteContent', SiteContentSchema);
+
+export { connectDB, Enquiry, Blog, SiteContent };

@@ -2,7 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { syncFromCloud } from "@/lib/siteData";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -26,8 +28,25 @@ import Enquiries from "./pages/admin/Enquiries";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-    <QueryClientProvider client={queryClient}>
+const App = () => {
+    useEffect(() => {
+        // Asynchronously sync content from cloud backend if available
+        syncFromCloud();
+
+        // SPA redirect handler for static hosts (AWS S3 404 fallback)
+        try {
+            const redirectPath = sessionStorage.getItem("spa_redirect_path");
+            if (redirectPath) {
+                sessionStorage.removeItem("spa_redirect_path");
+                window.history.replaceState(null, "", redirectPath);
+            }
+        } catch (e) {
+            // Ignore in restricted environments
+        }
+    }, []);
+
+    return (
+        <QueryClientProvider client={queryClient}>
         <TooltipProvider>
             <Toaster />
             <Sonner position="top-right" richColors />
@@ -60,6 +79,7 @@ const App = () => (
             </BrowserRouter>
         </TooltipProvider>
     </QueryClientProvider>
-);
+    );
+};
 
 export default App;

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resonance Solutions</title>
+    <script>
+      // Single Page Application router fallback for static hosts (AWS S3, GitHub Pages, etc.)
+      // Automatically recovers the requested route and redirects to /index.html
+      (function () {
+        var path = window.location.pathname;
+        var search = window.location.search;
+        var hash = window.location.hash;
+        if (path && path !== "/" && path !== "/index.html") {
+          sessionStorage.setItem("spa_redirect_path", path + search + hash);
+          window.location.replace("/");
+        }
+      })();
+    </script>
+  </head>
+  <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #1e293b;">
+    <div style="text-align: center;">
+      <h2 style="font-size: 1.5rem; color: #1e3a8a; margin-bottom: 0.5rem;">Loading Resonance Solutions...</h2>
+      <p style="font-size: 0.875rem; color: #64748b;">Redirecting to requested page...</p>
+    </div>
+  </body>
+</html>

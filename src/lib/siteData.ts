@@ -491,6 +491,47 @@ const STORAGE_KEYS = {
     SETTINGS: "resonance_site_settings_data",
 };
 
+// API endpoint for cloud hosting environments (Netlify / AWS / Custom Backend)
+export const API_BASE =
+    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) ||
+    "/.netlify/functions";
+
+// Background sync from cloud backend on app start
+export const syncFromCloud = async () => {
+    if (typeof window === "undefined") return;
+    try {
+        const res = await fetch(`${API_BASE}/site-content`);
+        if (!res.ok) return;
+        const result = await res.json();
+        if (result.success && result.content && typeof result.content === "object") {
+            Object.entries(result.content).forEach(([storageKey, value]) => {
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(value));
+                } catch (e) {
+                    // Ignore quota limits
+                }
+            });
+            notifyDataChange("all");
+        }
+    } catch (e) {
+        // Graceful silent fallback for local dev / offline mode
+    }
+};
+
+// Background push to cloud backend
+export const syncToCloud = async (key: string, data: any) => {
+    if (typeof window === "undefined") return;
+    try {
+        await fetch(`${API_BASE}/site-content`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key, data }),
+        });
+    } catch (e) {
+        // Graceful silent fallback for local dev / offline mode
+    }
+};
+
 // Dispatch custom event to notify all components in the current tab
 const notifyDataChange = (key: string) => {
     if (typeof window !== "undefined") {
@@ -518,6 +559,7 @@ export const saveStoredAdvisors = (advisors: Advisor[]) => {
     try {
         localStorage.setItem(STORAGE_KEYS.ADVISORS, JSON.stringify(advisors));
         notifyDataChange(STORAGE_KEYS.ADVISORS);
+        syncToCloud(STORAGE_KEYS.ADVISORS, advisors);
     } catch (e) {
         console.error("Error saving advisors to localStorage", e);
     }
@@ -543,6 +585,7 @@ export const saveStoredTeam = (team: TeamMember[]) => {
     try {
         localStorage.setItem(STORAGE_KEYS.TEAM, JSON.stringify(team));
         notifyDataChange(STORAGE_KEYS.TEAM);
+        syncToCloud(STORAGE_KEYS.TEAM, team);
     } catch (e) {
         console.error("Error saving team to localStorage", e);
     }
@@ -568,6 +611,7 @@ export const saveStoredContact = (contact: ContactInfo) => {
     try {
         localStorage.setItem(STORAGE_KEYS.CONTACT, JSON.stringify(contact));
         notifyDataChange(STORAGE_KEYS.CONTACT);
+        syncToCloud(STORAGE_KEYS.CONTACT, contact);
     } catch (e) {
         console.error("Error saving contact to localStorage", e);
     }
@@ -593,6 +637,7 @@ export const saveStoredServices = (services: Service[]) => {
     try {
         localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(services));
         notifyDataChange(STORAGE_KEYS.SERVICES);
+        syncToCloud(STORAGE_KEYS.SERVICES, services);
     } catch (e) {
         console.error("Error saving services to localStorage", e);
     }
@@ -618,6 +663,7 @@ export const saveStoredPrograms = (programs: Program[]) => {
     try {
         localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
         notifyDataChange(STORAGE_KEYS.PROGRAMS);
+        syncToCloud(STORAGE_KEYS.PROGRAMS, programs);
     } catch (e) {
         console.error("Error saving programs to localStorage", e);
     }
@@ -643,6 +689,7 @@ export const saveStoredBlogs = (blogs: BlogPost[]) => {
     try {
         localStorage.setItem(STORAGE_KEYS.BLOGS, JSON.stringify(blogs));
         notifyDataChange(STORAGE_KEYS.BLOGS);
+        syncToCloud(STORAGE_KEYS.BLOGS, blogs);
     } catch (e) {
         console.error("Error saving blogs to localStorage", e);
     }
@@ -724,6 +771,18 @@ export const addEnquiry = (enquiryData: {
     };
     const updated = [newEnquiry, ...enquiries];
     saveStoredEnquiries(updated);
+
+    // Asynchronously submit to cloud backend if available
+    try {
+        fetch(`${API_BASE}/submit-enquiry`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(enquiryData),
+        }).catch(() => {});
+    } catch (e) {
+        // Silently continue locally
+    }
+
     return newEnquiry;
 };
 
@@ -761,6 +820,7 @@ export const saveStoredAlbums = (albums: Album[]) => {
     try {
         localStorage.setItem(STORAGE_KEYS.ALBUMS, JSON.stringify(albums));
         notifyDataChange(STORAGE_KEYS.ALBUMS);
+        syncToCloud(STORAGE_KEYS.ALBUMS, albums);
     } catch (e) {
         console.error("Error saving albums to localStorage", e);
     }
@@ -788,6 +848,7 @@ export const saveStoredSettings = (settings: SiteSettings) => {
     try {
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
         notifyDataChange(STORAGE_KEYS.SETTINGS);
+        syncToCloud(STORAGE_KEYS.SETTINGS, settings);
     } catch (e) {
         console.error("Error saving settings to localStorage", e);
     }
