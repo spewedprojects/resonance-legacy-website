@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import {
     Dialog,
@@ -41,7 +42,7 @@ import {
     CheckCircle2,
     Eye,
 } from "lucide-react";
-import EventRegistrationWidget from "@/components/EventRegistrationWidget";
+import EventRegistrationWidget, { WidgetButtonStyle } from "@/components/EventRegistrationWidget";
 import { toast } from "sonner";
 
 const ManageEvents: React.FC = () => {
@@ -49,6 +50,7 @@ const ManageEvents: React.FC = () => {
     const [events, setEvents] = useState<ResonanceEvent[]>(getStoredEvents);
     const [config, setConfig] = useState<EventsConfig>(getStoredEventsConfig);
     const [portalUrlInput, setPortalUrlInput] = useState(config.portalUrl);
+    const [openDirectUrl, setOpenDirectUrl] = useState<boolean>(config.openDirectUrl ?? true);
 
     // Dialog state
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -69,26 +71,40 @@ const ManageEvents: React.FC = () => {
     const [formBannerImage, setFormBannerImage] = useState("");
     const [formSnippet, setFormSnippet] = useState("");
     const [formRegistrationUrl, setFormRegistrationUrl] = useState("");
+    const [formButtonStyle, setFormButtonStyle] = useState<WidgetButtonStyle>("gradient");
     const [isUploading, setIsUploading] = useState(false);
 
     // Save portal link setting
-    const handleSavePortalUrl = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSavePortalUrl = (e?: React.FormEvent, newDirectVal?: boolean) => {
+        if (e) e.preventDefault();
         const trimmed = portalUrlInput.trim();
         if (!trimmed) {
             toast.error("Please enter a valid portal URL");
             return;
         }
 
+        const validUrl = /^https?:\/\//i.test(trimmed)
+            ? trimmed
+            : `https://${trimmed}`;
+
+        const effectiveDirectVal = newDirectVal !== undefined ? newDirectVal : openDirectUrl;
+
         const updated: EventsConfig = {
             ...config,
-            portalUrl: trimmed.startsWith("http") ? trimmed : `https://${trimmed}`,
+            portalUrl: validUrl,
+            openDirectUrl: effectiveDirectVal,
         };
 
         saveStoredEventsConfig(updated);
         setConfig(updated);
         setPortalUrlInput(updated.portalUrl);
-        toast.success("Events portal link updated successfully!");
+        setOpenDirectUrl(updated.openDirectUrl);
+        toast.success("Events portal configuration updated successfully!");
+    };
+
+    const handleToggleDirectUrl = (checked: boolean) => {
+        setOpenDirectUrl(checked);
+        handleSavePortalUrl(undefined, checked);
     };
 
     const openAddDialog = () => {
@@ -106,9 +122,10 @@ const ManageEvents: React.FC = () => {
             "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop",
         );
         setFormSnippet(
-            `<a href="${config.portalUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#ff5722,#e64a19);color:#ffffff;font-family:sans-serif;font-size:13px;font-weight:700;padding:10px 22px;border-radius:9999px;text-decoration:none;box-shadow:0 4px 12px rgba(230,74,25,0.3);"><span>Register on Konfhub</span></a>`,
+            `<a href="${config.portalUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#ff5722,#e64a19);color:#ffffff;font-family:sans-serif;font-size:13px;font-weight:700;padding:10px 22px;border-radius:9999px;text-decoration:none;box-shadow:0 4px 12px rgba(230,74,25,0.3);"><span>Register Now</span></a>`,
         );
         setFormRegistrationUrl(config.portalUrl);
+        setFormButtonStyle("gradient");
         setIsDialogOpen(true);
     };
 
@@ -126,6 +143,7 @@ const ManageEvents: React.FC = () => {
         setFormBannerImage(event.bannerImage || "");
         setFormSnippet(event.registrationSnippet || "");
         setFormRegistrationUrl(event.registrationUrl || "");
+        setFormButtonStyle(event.buttonStyle || "gradient");
         setIsDialogOpen(true);
     };
 
@@ -179,6 +197,7 @@ const ManageEvents: React.FC = () => {
                           bannerImage: formBannerImage || "/media/placeholder.png",
                           registrationSnippet: formSnippet.trim() || undefined,
                           registrationUrl: formRegistrationUrl.trim() || undefined,
+                          buttonStyle: formButtonStyle,
                       }
                     : ev,
             );
@@ -198,6 +217,7 @@ const ManageEvents: React.FC = () => {
                 bannerImage: formBannerImage || "/media/placeholder.png",
                 registrationSnippet: formSnippet.trim() || undefined,
                 registrationUrl: formRegistrationUrl.trim() || undefined,
+                buttonStyle: formButtonStyle,
             };
             updated = [newEvent, ...events];
             toast.success(`Created new event "${formTitle.trim()}"`);
@@ -241,6 +261,7 @@ const ManageEvents: React.FC = () => {
             setEvents(DEFAULT_EVENTS);
             setConfig(DEFAULT_EVENTS_CONFIG);
             setPortalUrlInput(DEFAULT_EVENTS_CONFIG.portalUrl);
+            setOpenDirectUrl(DEFAULT_EVENTS_CONFIG.openDirectUrl);
             toast.success("Reset events and portal configuration to defaults");
         }
     };
@@ -263,7 +284,7 @@ const ManageEvents: React.FC = () => {
                         Manage Events & Portal Link
                     </h1>
                     <p className="text-blue-200 text-sm mt-1 max-w-2xl">
-                        Configure the external events portal destination and create rich event listings with custom HTML registration widgets (Konfhub buttons, ticketing scripts, and banners).
+                        Configure the external events portal destination and create rich event listings with custom HTML registration widgets (ticketing widgets, embed scripts, and custom banners).
                     </p>
                 </div>
 
@@ -286,20 +307,51 @@ const ManageEvents: React.FC = () => {
             </div>
 
             {/* Portal Link Configuration Card */}
-            <Card className="bg-white rounded-2xl border-slate-200/80 shadow-sm p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="max-w-xl">
+            <Card className="bg-white rounded-2xl border-slate-200/80 shadow-sm p-6 space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                    <div>
                         <h3 className="text-base font-bold text-blue-950 flex items-center gap-2">
                             <ExternalLink className="w-5 h-5 text-blue-600" />
-                            External Events Portal Destination
+                            Navbar & Footer "Events" Navigation Behavior
                         </h3>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                            The <strong>"Events"</strong> button in the website's Navbar and Footer directly opens this portal URL.
+                        <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-xl">
+                            Choose whether clicking the <strong>"Events"</strong> button in the navigation opens the external portal directly or takes visitors to the website's on-site events showcase.
+                        </p>
+                    </div>
+
+                    {/* Switch Control */}
+                    <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl shrink-0">
+                        <Switch
+                            id="portal-switch"
+                            checked={openDirectUrl}
+                            onCheckedChange={handleToggleDirectUrl}
+                        />
+                        <Label
+                            htmlFor="portal-switch"
+                            className="cursor-pointer text-xs font-bold text-slate-800 flex flex-col">
+                            <span>{openDirectUrl ? "Direct External URL" : "On-Site Events Page (/events)"}</span>
+                            <span className="text-[10px] text-slate-400 font-normal">
+                                {openDirectUrl
+                                    ? "Opens external portal directly in a new tab"
+                                    : "Opens /events page on this website"}
+                            </span>
+                        </Label>
+                    </div>
+                </div>
+
+                {/* Destination URL Input */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div>
+                        <h4 className="text-xs font-bold text-slate-700">
+                            Destination External Portal URL
+                        </h4>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                            Target address when direct external link is enabled (or featured in the header banner).
                         </p>
                     </div>
 
                     <form
-                        onSubmit={handleSavePortalUrl}
+                        onSubmit={(e) => handleSavePortalUrl(e)}
                         className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-lg">
                         <div className="relative flex-1">
                             <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -315,7 +367,7 @@ const ManageEvents: React.FC = () => {
                         <Button
                             type="submit"
                             className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shrink-0">
-                            Save Portal Link
+                            Save URL
                         </Button>
                         <a
                             href={config.portalUrl}
@@ -434,7 +486,7 @@ const ManageEvents: React.FC = () => {
                                         {ev.description}
                                     </p>
 
-                                    {/* Widget / Konfhub Status */}
+                                    {/* Registration Widget Status */}
                                     <div className="pt-2 flex items-center justify-between text-xs">
                                         <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
                                             <Code className="w-3.5 h-3.5 text-indigo-500" />
@@ -663,12 +715,12 @@ const ManageEvents: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Konfhub / Registration HTML Snippet */}
+                        {/* Third-Party Registration HTML Snippet */}
                         <div className="space-y-2 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="ev-snippet" className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                                     <Code className="w-3.5 h-3.5 text-indigo-600" />
-                                    Third-Party Button / HTML Snippet (e.g. Konfhub, Eventbrite)
+                                    Third-Party Registration Button / HTML Snippet
                                 </Label>
                                 <span className="text-[10px] text-slate-400">
                                     Accepts &lt;a&gt;, &lt;button&gt;, or embed scripts
@@ -677,7 +729,7 @@ const ManageEvents: React.FC = () => {
 
                             <Textarea
                                 id="ev-snippet"
-                                placeholder={`Paste your Konfhub button snippet or HTML here, e.g.:\n<a href="https://konfhub.com/..." class="..." style="...">Register</a>`}
+                                placeholder={`Paste your button snippet or embed code here, e.g.:\n<div><script src=\"https://...\" ...></script></div>\nor\n<a href=\"https://...\" ...>Register Now</a>`}
                                 value={formSnippet}
                                 onChange={(e) => setFormSnippet(e.target.value)}
                                 rows={3}
@@ -698,6 +750,69 @@ const ManageEvents: React.FC = () => {
                                 />
                             </div>
 
+                            {/* Button Appearance Style Selector */}
+                            <div className="space-y-1.5 pt-1">
+                                <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                                    <span>Button Visual Appearance</span>
+                                    <span className="text-[10px] text-slate-400 font-normal">
+                                        Overrides raw flat orange button with high-end visuals
+                                    </span>
+                                </Label>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormButtonStyle("gradient")}
+                                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                                            formButtonStyle === "gradient"
+                                                ? "border-orange-500 bg-orange-50/70 shadow-sm ring-1 ring-orange-500"
+                                                : "border-slate-200 hover:border-slate-300 bg-white"
+                                        }`}>
+                                        <div className="h-3.5 rounded-full bg-gradient-to-r from-orange-500 via-rose-500 to-red-600 mb-1.5 shadow-sm" />
+                                        <div className="text-[11px] font-bold text-slate-800">Resonance Pill</div>
+                                        <div className="text-[9px] text-slate-500">Vibrant gradient</div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormButtonStyle("navy")}
+                                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                                            formButtonStyle === "navy"
+                                                ? "border-blue-700 bg-blue-50/70 shadow-sm ring-1 ring-blue-700"
+                                                : "border-slate-200 hover:border-slate-300 bg-white"
+                                        }`}>
+                                        <div className="h-3.5 rounded-full bg-gradient-to-r from-blue-900 to-indigo-900 mb-1.5 border border-orange-400/60 shadow-sm" />
+                                        <div className="text-[11px] font-bold text-slate-800">Corporate Navy</div>
+                                        <div className="text-[9px] text-slate-500">Navy with orange ring</div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormButtonStyle("glow")}
+                                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                                            formButtonStyle === "glow"
+                                                ? "border-purple-600 bg-purple-50/70 shadow-sm ring-1 ring-purple-600"
+                                                : "border-slate-200 hover:border-slate-300 bg-white"
+                                        }`}>
+                                        <div className="h-3.5 rounded-full bg-gradient-to-r from-orange-500 via-fuchsia-600 to-purple-600 mb-1.5 shadow-sm shadow-purple-500/40" />
+                                        <div className="text-[11px] font-bold text-slate-800">Cyber Aurora</div>
+                                        <div className="text-[9px] text-slate-500">High-energy glow</div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormButtonStyle("classic")}
+                                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                                            formButtonStyle === "classic"
+                                                ? "border-slate-700 bg-slate-100 shadow-sm ring-1 ring-slate-700"
+                                                : "border-slate-200 hover:border-slate-300 bg-white"
+                                        }`}>
+                                        <div className="h-3.5 rounded bg-[#ff5722] mb-1.5 shadow-sm" />
+                                        <div className="text-[11px] font-bold text-slate-800">Original / Raw</div>
+                                        <div className="text-[9px] text-slate-500">Raw third-party style</div>
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Snippet Preview */}
                             <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
                                 <span className="text-[11px] font-bold text-slate-500">
@@ -707,6 +822,7 @@ const ManageEvents: React.FC = () => {
                                     snippet={formSnippet}
                                     fallbackUrl={formRegistrationUrl}
                                     eventTitle={formTitle}
+                                    buttonStyle={formButtonStyle}
                                 />
                             </div>
                         </div>

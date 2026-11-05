@@ -233,14 +233,15 @@ const Events: React.FC = () => {
                                             </p>
                                         </div>
 
-                                        {/* Actions: Registration Button (Snippet / Konfhub) & Share */}
+                                        {/* Actions: Registration Button Widget & Share */}
                                         <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 mt-auto">
-                                            {/* Konfhub / Registration Widget */}
+                                            {/* Registration Widget */}
                                             <div className="flex items-center gap-3">
                                                 <EventRegistrationWidget
                                                     snippet={ev.registrationSnippet}
                                                     fallbackUrl={ev.registrationUrl}
                                                     eventTitle={ev.title}
+                                                    buttonStyle={ev.buttonStyle || "gradient"}
                                                 />
                                             </div>
 

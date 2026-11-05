@@ -95,10 +95,12 @@ export interface ResonanceEvent {
     status: "upcoming" | "ongoing" | "completed";
     registrationSnippet?: string;
     registrationUrl?: string;
+    buttonStyle?: "gradient" | "navy" | "glow" | "classic";
 }
 
 export interface EventsConfig {
     portalUrl: string;
+    openDirectUrl: boolean;
 }
 
 export const DEFAULT_ADVISORS: Advisor[] = [
@@ -501,6 +503,7 @@ export const DEFAULT_ENQUIRIES: Enquiry[] = [
 
 export const DEFAULT_EVENTS_CONFIG: EventsConfig = {
     portalUrl: "https://events.theresonance.co.in",
+    openDirectUrl: true,
 };
 
 export const DEFAULT_EVENTS: ResonanceEvent[] = [
@@ -519,8 +522,9 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
         venue: "Auto Cluster Exhibition Centre, Chinchwad, Pune",
         category: "Conclave",
         status: "upcoming",
-        registrationSnippet: "<a href=\"https://events.theresonance.co.in\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#ff5722,#e64a19);color:#ffffff;font-family:sans-serif;font-size:13px;font-weight:700;padding:10px 22px;border-radius:9999px;text-decoration:none;box-shadow:0 4px 12px rgba(230,74,25,0.3);transition:all 0.2s ease;\"><span>Register on Konfhub</span><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></a>",
-        registrationUrl: "https://events.theresonance.co.in",
+        registrationSnippet: "<div><script src=\"https://widget.konfhub.com/widget.js\" button_id=\"btn_6390d9287402\"></script></div>",
+        registrationUrl: "https://konfhub.com/national-csr-conclave-resonance-rmp",
+        buttonStyle: "gradient",
     },
     {
         id: "event-2",
@@ -537,7 +541,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
         venue: "Resonance Innovation Auditorium, Pune & Online Streaming",
         category: "Bootcamp",
         status: "upcoming",
-        registrationSnippet: "<a href=\"https://events.theresonance.co.in\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#ffffff;font-family:sans-serif;font-size:13px;font-weight:700;padding:10px 22px;border-radius:9999px;text-decoration:none;box-shadow:0 4px 12px rgba(37,99,235,0.3);transition:all 0.2s ease;\"><span>Register via Konfhub</span><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></a>",
+        registrationSnippet: "<a href=\"https://events.theresonance.co.in\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#ffffff;font-family:sans-serif;font-size:13px;font-weight:700;padding:10px 22px;border-radius:9999px;text-decoration:none;box-shadow:0 4px 12px rgba(37,99,235,0.3);transition:all 0.2s ease;\"><span>Register for Event</span><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></a>",
         registrationUrl: "https://events.theresonance.co.in",
     },
 ];

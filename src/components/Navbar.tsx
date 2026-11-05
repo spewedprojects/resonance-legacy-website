@@ -7,6 +7,7 @@ import { useSiteEventsConfig } from "@/lib/siteData";
 const navItems = [
     { id: "home", label: "Home", path: "/" },
     { id: "blog", label: "Blog", path: "/blog" },
+    { id: "events", label: "Events", path: "/events" },
     { id: "gallery", label: "Gallery", path: "/gallery" },
     { id: "about", label: "About", path: "/about" },
     { id: "contact", label: "Contact", path: "/contact" },
@@ -40,6 +41,15 @@ const Navbar = () => {
     }, [location.pathname]);
 
     const handleItemClick = (itemId: string, path: string) => {
+        if (itemId === "events" && (eventsConfig.openDirectUrl ?? true)) {
+            setIsMenuOpen(false);
+            const targetUrl = eventsConfig.portalUrl || "https://events.theresonance.co.in";
+            if (targetUrl.startsWith("http://") || targetUrl.startsWith("https://")) {
+                window.open(targetUrl, "_blank", "noopener,noreferrer");
+                return;
+            }
+        }
+
         setActiveItem(itemId);
         setIsMenuOpen(false);
         navigate(path);
@@ -100,29 +110,6 @@ const Navbar = () => {
                                 {item.label}
                             </button>
                         ))}
-
-                        {/* Desktop Events Button */}
-                        {isExternalPortal ? (
-                            <a
-                                href={portalUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="ml-2 px-4 py-2.5 rounded-full font-bold text-xs bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
-                                title="Resonance Events Portal">
-                                <Calendar className="w-3.5 h-3.5" />
-                                <span>Events</span>
-                                <ExternalLink className="w-2.5 h-2.5 opacity-70" />
-                            </a>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => handleItemClick("events", portalUrl)}
-                                className="ml-2 px-4 py-2.5 rounded-full font-bold text-xs bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
-                                title="Resonance Events">
-                                <Calendar className="w-3.5 h-3.5" />
-                                <span>Events</span>
-                            </button>
-                        )}
 
                         {/* Desktop ERP Placeholder Button */}
                         <button
@@ -216,30 +203,6 @@ const Navbar = () => {
                                 {item.label}
                             </button>
                         ))}
-
-                        {/* Mobile Events Button */}
-                        {isExternalPortal ? (
-                            <a
-                                href={portalUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full px-4 py-3 rounded-xl font-medium text-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-sm transition-all flex items-center justify-between"
-                                title="Resonance Events Portal">
-                                <div className="flex items-center gap-2">
-                                    <Calendar className="w-4 h-4" />
-                                    <span>Events</span>
-                                </div>
-                                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-                            </a>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => handleItemClick("events", portalUrl)}
-                                className="w-full text-left px-4 py-3 rounded-xl font-medium text-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-sm transition-all flex items-center gap-2">
-                                <Calendar className="w-4 h-4" />
-                                <span>Events</span>
-                            </button>
-                        )}
 
                         {/* Mobile ERP Placeholder Button */}
                         <button

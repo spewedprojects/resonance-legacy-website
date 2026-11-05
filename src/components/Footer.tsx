@@ -45,24 +45,34 @@ const Footer = () => {
                                 </Link>
                             </li>
                             <li>
-                                <a
-                                    href={eventsConfig.portalUrl || "https://events.theresonance.co.in"}
-                                    target={eventsConfig.portalUrl?.startsWith("http") ? "_blank" : undefined}
-                                    rel={eventsConfig.portalUrl?.startsWith("http") ? "noopener noreferrer" : undefined}
-                                    className="hover:text-orange-400 transition-colors inline-flex items-center gap-1.5 font-medium">
-                                    <span>Events</span>
-                                    {eventsConfig.portalUrl?.startsWith("http") && (
-                                        <ExternalLink className="w-3 h-3 text-orange-400/80" />
-                                    )}
-                                </a>
+                                {(eventsConfig.openDirectUrl ?? true) ? (
+                                    <a
+                                        href={eventsConfig.portalUrl || "https://events.theresonance.co.in"}
+                                        target={eventsConfig.portalUrl?.startsWith("http") ? "_blank" : undefined}
+                                        rel={eventsConfig.portalUrl?.startsWith("http") ? "noopener noreferrer" : undefined}
+                                        className="hover:text-orange-400 transition-colors inline-flex items-center gap-1.5 font-medium">
+                                        <span>Events</span>
+                                        {eventsConfig.portalUrl?.startsWith("http") && (
+                                            <ExternalLink className="w-3 h-3 text-orange-400/80" />
+                                        )}
+                                    </a>
+                                ) : (
+                                    <Link
+                                        to="/events"
+                                        className="hover:text-orange-400 transition-colors inline-flex items-center gap-1.5 font-medium">
+                                        <span>Events</span>
+                                    </Link>
+                                )}
                             </li>
-                            <li>
-                                <Link
-                                    to="/events"
-                                    className="hover:text-orange-400 text-gray-400 text-xs transition-colors pl-2 border-l border-slate-700">
-                                    Browse Events
-                                </Link>
-                            </li>
+                            {(eventsConfig.openDirectUrl ?? true) && (
+                                <li>
+                                    <Link
+                                        to="/events"
+                                        className="hover:text-orange-400 text-gray-400 text-xs transition-colors pl-2 border-l border-slate-700">
+                                        Browse Events
+                                    </Link>
+                                </li>
+                            )}
                             <li>
                                 <Link
                                     to="/about"
