@@ -4,6 +4,18 @@ const PASSWORD_HASH_KEY = "resonance_admin_password_hash";
 const INITIALIZED_KEY = "resonance_admin_initialized";
 const AUTH_STORAGE_KEY = "isAdminAuthenticated";
 const LEGACY_STORAGE_KEY = "resonance_admin_password";
+const PASSWORD_UPDATED_AT_KEY = "resonance_admin_password_updated_at";
+
+export const getPasswordLastChanged = (): string | null => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(PASSWORD_UPDATED_AT_KEY);
+};
+
+export const setPasswordLastChanged = (timestamp?: string) => {
+    if (typeof window === "undefined") return;
+    const ts = timestamp || new Date().toISOString();
+    localStorage.setItem(PASSWORD_UPDATED_AT_KEY, ts);
+};
 
 // Master setup and emergency recovery key (configurable via hosting environment variable)
 export const MASTER_SETUP_KEY =
@@ -79,16 +91,18 @@ export const setupInitialPassword = async (
     }
 
     const hashed = await hashPassword(newPassword.trim());
+    const updatedAt = new Date().toISOString();
     localStorage.setItem(PASSWORD_HASH_KEY, hashed);
     localStorage.setItem(INITIALIZED_KEY, "true");
     localStorage.setItem(AUTH_STORAGE_KEY, "true");
     localStorage.removeItem(LEGACY_STORAGE_KEY);
+    setPasswordLastChanged(updatedAt);
 
     // Sync auth state to cloud backend if connected
     syncToCloud("resonance_admin_auth", {
         hash: hashed,
         initialized: true,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
     });
 
     return {
@@ -169,14 +183,16 @@ export const changePassword = async (
     }
 
     const hashed = await hashPassword(newPassword.trim());
+    const updatedAt = new Date().toISOString();
     localStorage.setItem(PASSWORD_HASH_KEY, hashed);
     localStorage.setItem(INITIALIZED_KEY, "true");
     localStorage.removeItem(LEGACY_STORAGE_KEY);
+    setPasswordLastChanged(updatedAt);
 
     syncToCloud("resonance_admin_auth", {
         hash: hashed,
         initialized: true,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
     });
 
     return {

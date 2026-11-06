@@ -38,6 +38,11 @@ import {
     Search,
     Image as ImageIcon,
     Check,
+    UserMinus,
+    UserCheck,
+    RotateCcw,
+    Archive,
+    History,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,6 +74,7 @@ const ManageTeam: React.FC = () => {
     const [formContact, setFormContact] = useState("");
     const [formEmail, setFormEmail] = useState("");
     const [formImg, setFormImg] = useState<string | null>(null);
+    const [formIsFormer, setFormIsFormer] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
     const filteredTeam = team.filter(
@@ -78,6 +84,9 @@ const ManageTeam: React.FC = () => {
             (m.email && m.email.toLowerCase().includes(searchQuery.toLowerCase())),
     );
 
+    const activeTeam = filteredTeam.filter((m) => !m.isFormer);
+    const formerTeam = filteredTeam.filter((m) => m.isFormer);
+
     const openAddDialog = () => {
         setEditingMember(null);
         setFormName("");
@@ -85,6 +94,7 @@ const ManageTeam: React.FC = () => {
         setFormContact("");
         setFormEmail("");
         setFormImg(null);
+        setFormIsFormer(false);
         setIsDialogOpen(true);
     };
 
@@ -95,6 +105,7 @@ const ManageTeam: React.FC = () => {
         setFormContact(member.contact || "");
         setFormEmail(member.email || "");
         setFormImg(member.img || null);
+        setFormIsFormer(Boolean(member.isFormer));
         setIsDialogOpen(true);
     };
 
@@ -140,6 +151,7 @@ const ManageTeam: React.FC = () => {
                           contact: formContact.trim() || null,
                           email: formEmail.trim() || null,
                           img: formImg,
+                          isFormer: formIsFormer,
                       }
                     : m,
             );
@@ -152,6 +164,7 @@ const ManageTeam: React.FC = () => {
                 contact: formContact.trim() || null,
                 email: formEmail.trim() || null,
                 img: formImg,
+                isFormer: formIsFormer,
             };
             updated = [newMember, ...team];
             toast.success(`Added "${formName.trim()}" to Team`);
@@ -162,12 +175,32 @@ const ManageTeam: React.FC = () => {
         setIsDialogOpen(false);
     };
 
-    const handleDelete = (member: TeamMember) => {
-        if (window.confirm(`Are you sure you want to remove "${member.name}"?`)) {
+    const handleMoveToFormer = (member: TeamMember) => {
+        if (window.confirm(`Move "${member.name}" to Former Members section? They will appear greyed out at the bottom.`)) {
+            const updated = team.map((m) =>
+                m.id === member.id ? { ...m, isFormer: true } : m
+            );
+            setTeam(updated);
+            saveStoredTeam(updated);
+            toast.info(`"${member.name}" moved to Former Members section.`);
+        }
+    };
+
+    const handleRestoreToActive = (member: TeamMember) => {
+        const updated = team.map((m) =>
+            m.id === member.id ? { ...m, isFormer: false } : m
+        );
+        setTeam(updated);
+        saveStoredTeam(updated);
+        toast.success(`Restored "${member.name}" to Active Team.`);
+    };
+
+    const handlePermanentDelete = (member: TeamMember) => {
+        if (window.confirm(`Permanently delete "${member.name}" from database? This cannot be undone.`)) {
             const updated = team.filter((m) => m.id !== member.id);
             setTeam(updated);
             saveStoredTeam(updated);
-            toast.success(`Removed "${member.name}"`);
+            toast.success(`Permanently removed "${member.name}".`);
         }
     };
 
@@ -266,109 +299,236 @@ const ManageTeam: React.FC = () => {
                     <p className="text-gray-400 text-sm mt-1">Try a different search or add a new team member.</p>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                    {filteredTeam.map((member, idx) => {
-                        const originalIndex = team.findIndex((m) => m.id === member.id);
-                        return (
-                            <div
-                                key={member.id}
-                                className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all border border-slate-100 flex flex-col group relative">
-                                {/* Order badge */}
-                                <div className="absolute top-3 right-3 flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded-full text-[10px] text-gray-500 font-medium">
-                                    #{originalIndex + 1}
-                                </div>
+                <div className="space-y-8">
+                    {/* 1. Active Team Members Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-base font-bold text-blue-950 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-blue-600" />
+                                Active Organization Team ({activeTeam.length})
+                            </h2>
+                            <span className="text-xs bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                Active on Website
+                            </span>
+                        </div>
 
-                                {/* Avatar */}
-                                <div className="w-20 h-20 rounded-full mx-auto mb-3 overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 flex items-center justify-center shrink-0 shadow-inner">
-                                    {member.img ? (
-                                        <img
-                                            src={member.img}
-                                            alt={member.name}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                                (e.currentTarget as HTMLImageElement).src = "/media/resonanceLogoNav.png";
-                                            }}
-                                        />
-                                    ) : (
-                                        <Users className="w-8 h-8 text-blue-400" />
-                                    )}
-                                </div>
-
-                                {/* Details */}
-                                <div className="text-center flex-1">
-                                    <h3 className="font-bold text-blue-950 text-base leading-snug">
-                                        {member.name}
-                                    </h3>
-                                    <p className="text-xs text-blue-700 font-medium mt-1 min-h-[2rem] flex items-center justify-center">
-                                        {member.position}
-                                    </p>
-
-                                    <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-left text-xs text-gray-600">
-                                        {member.email ? (
-                                            <div className="flex items-center gap-2 truncate" title={member.email}>
-                                                <Mail className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                                                <span className="truncate">{member.email}</span>
-                                            </div>
-                                        ) : (
-                                            <div className="text-gray-300 italic text-[11px]">No email listed</div>
-                                        )}
-
-                                        {member.contact ? (
-                                            <div className="flex items-center gap-2">
-                                                <Phone className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                                                <span>{member.contact}</span>
-                                            </div>
-                                        ) : (
-                                            <div className="text-gray-300 italic text-[11px]">No phone listed</div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-1">
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            disabled={originalIndex === 0}
-                                            onClick={() => handleMove(originalIndex, "up")}
-                                            className="h-7 w-7 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                                            title="Move Up">
-                                            <ArrowUp className="w-3.5 h-3.5" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            disabled={originalIndex === team.length - 1}
-                                            onClick={() => handleMove(originalIndex, "down")}
-                                            className="h-7 w-7 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                                            title="Move Down">
-                                            <ArrowDown className="w-3.5 h-3.5" />
-                                        </Button>
-                                    </div>
-
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => openEditDialog(member)}
-                                            className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50 flex items-center gap-1 font-medium">
-                                            <Pencil className="w-3.5 h-3.5" />
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleDelete(member)}
-                                            className="h-7 w-7 text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                            title="Delete Member">
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </Button>
-                                    </div>
-                                </div>
+                        {activeTeam.length === 0 ? (
+                            <div className="p-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 text-xs">
+                                No active members currently. Restore members from below or add a new one.
                             </div>
-                        );
-                    })}
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                                {activeTeam.map((member) => {
+                                    const originalIndex = team.findIndex((m) => m.id === member.id);
+                                    return (
+                                        <div
+                                            key={member.id}
+                                            className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all border border-slate-100 flex flex-col group relative">
+                                            {/* Order badge */}
+                                            <div className="absolute top-3 right-3 flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded-full text-[10px] text-gray-500 font-medium">
+                                                #{originalIndex + 1}
+                                            </div>
+
+                                            {/* Avatar */}
+                                            <div className="w-20 h-20 rounded-full mx-auto mb-3 overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 flex items-center justify-center shrink-0 shadow-inner">
+                                                {member.img ? (
+                                                    <img
+                                                        src={member.img}
+                                                        alt={member.name}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            (e.currentTarget as HTMLImageElement).src = "/media/resonanceLogoNav.png";
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Users className="w-8 h-8 text-blue-400" />
+                                                )}
+                                            </div>
+
+                                            {/* Details */}
+                                            <div className="text-center flex-1">
+                                                <h3 className="font-bold text-blue-950 text-base leading-snug">
+                                                    {member.name}
+                                                </h3>
+                                                <p className="text-xs text-blue-700 font-medium mt-1 min-h-[2rem] flex items-center justify-center">
+                                                    {member.position}
+                                                </p>
+
+                                                <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-left text-xs text-gray-600">
+                                                    {member.email ? (
+                                                        <div className="flex items-center gap-2 truncate" title={member.email}>
+                                                            <Mail className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                                                            <span className="truncate">{member.email}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-300 italic text-[11px]">No email listed</div>
+                                                    )}
+
+                                                    {member.contact ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <Phone className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                                            <span>{member.contact}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-300 italic text-[11px]">No phone listed</div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-1">
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        disabled={originalIndex === 0}
+                                                        onClick={() => handleMove(originalIndex, "up")}
+                                                        className="h-7 w-7 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                                                        title="Move Up">
+                                                        <ArrowUp className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        disabled={originalIndex === team.length - 1}
+                                                        onClick={() => handleMove(originalIndex, "down")}
+                                                        className="h-7 w-7 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                                                        title="Move Down">
+                                                        <ArrowDown className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => openEditDialog(member)}
+                                                        className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50 flex items-center gap-1 font-medium">
+                                                        <Pencil className="w-3.5 h-3.5" />
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleMoveToFormer(member)}
+                                                        className="h-7 w-7 text-gray-400 hover:text-amber-600 hover:bg-amber-50"
+                                                        title="Move to Former Members (Grey out)">
+                                                        <UserMinus className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 2. Former Team Members Section (Greyed out at the bottom) */}
+                    {formerTeam.length > 0 && (
+                        <div className="pt-8 border-t border-slate-200 space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <div>
+                                    <h2 className="text-base font-bold text-slate-700 flex items-center gap-2">
+                                        <History className="w-4 h-4 text-slate-500" />
+                                        Former Team Members & Alumni ({formerTeam.length})
+                                    </h2>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        These individuals are no longer active in the organization and appear greyed out at the bottom.
+                                    </p>
+                                </div>
+                                <span className="inline-flex items-center text-xs font-semibold bg-slate-200 text-slate-700 px-3 py-1 rounded-full w-fit">
+                                    No longer active
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                                {formerTeam.map((member) => (
+                                    <div
+                                        key={member.id}
+                                        className="bg-slate-50/90 rounded-2xl p-5 border border-dashed border-slate-300 opacity-70 hover:opacity-100 transition-all flex flex-col group relative">
+                                        {/* Former Badge */}
+                                        <div className="absolute top-3 right-3 bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                            Former
+                                        </div>
+
+                                        {/* Avatar - Greyscale */}
+                                        <div className="w-20 h-20 rounded-full mx-auto mb-3 overflow-hidden bg-slate-200 border-2 border-slate-300 flex items-center justify-center shrink-0 grayscale contrast-75">
+                                            {member.img ? (
+                                                <img
+                                                    src={member.img}
+                                                    alt={member.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.currentTarget as HTMLImageElement).src = "/media/resonanceLogoNav.png";
+                                                    }}
+                                                />
+                                            ) : (
+                                                <Users className="w-8 h-8 text-slate-400" />
+                                            )}
+                                        </div>
+
+                                        {/* Details */}
+                                        <div className="text-center flex-1">
+                                            <h3 className="font-bold text-slate-700 text-base leading-snug">
+                                                {member.name}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 font-medium mt-1 min-h-[2rem] flex items-center justify-center">
+                                                {member.position}
+                                            </p>
+
+                                            <div className="mt-3 pt-3 border-t border-slate-200 space-y-1.5 text-left text-xs text-slate-500">
+                                                {member.email && (
+                                                    <div className="flex items-center gap-2 truncate">
+                                                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                        <span className="truncate">{member.email}</span>
+                                                    </div>
+                                                )}
+                                                {member.contact && (
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                        <span>{member.contact}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Actions */}
+                                        <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between gap-1">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleRestoreToActive(member)}
+                                                className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50 flex items-center gap-1 font-medium rounded-lg"
+                                                title="Restore to Active Team">
+                                                <RotateCcw className="w-3 h-3" />
+                                                Restore
+                                            </Button>
+
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openEditDialog(member)}
+                                                    className="h-7 px-2 text-xs text-slate-600 hover:bg-slate-200 flex items-center gap-1 font-medium">
+                                                    <Pencil className="w-3 h-3" />
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handlePermanentDelete(member)}
+                                                    className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                    title="Permanently Delete">
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -506,6 +666,25 @@ const ManageTeam: React.FC = () => {
                                     className="mt-1"
                                 />
                             </div>
+                        </div>
+
+                        {/* Former member status switch */}
+                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 mt-2">
+                            <div>
+                                <Label htmlFor="form-is-former" className="text-xs font-bold text-slate-800 block cursor-pointer">
+                                    Former Member (Alumni)
+                                </Label>
+                                <p className="text-[11px] text-slate-500">
+                                    Mark if this person is no longer active in the organization
+                                </p>
+                            </div>
+                            <input
+                                id="form-is-former"
+                                type="checkbox"
+                                checked={formIsFormer}
+                                onChange={(e) => setFormIsFormer(e.target.checked)}
+                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
                         </div>
 
                         <DialogFooter className="mt-6 flex items-center justify-end gap-2">

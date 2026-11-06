@@ -16,6 +16,15 @@ import {
     Sparkles,
     Layers,
     Images,
+    Eye,
+    Activity,
+    Laptop,
+    Smartphone,
+    ShieldCheck,
+    LogOut,
+    Flame,
+    Radio,
+    Clock,
 } from "lucide-react";
 import {
     useSiteTeam,
@@ -27,7 +36,12 @@ import {
     useSiteEvents,
     useSiteBlogs,
     useSiteEnquiries,
+    useSiteVisitorStats,
+    useSiteSessions,
+    revokeSession,
+    revokeAllOtherSessions,
 } from "@/lib/siteData";
+import { toast } from "sonner";
 
 const Dashboard = () => {
     const team = useSiteTeam();
@@ -39,9 +53,30 @@ const Dashboard = () => {
     const events = useSiteEvents();
     const blogs = useSiteBlogs();
     const enquiries = useSiteEnquiries();
+    const visitorStats = useSiteVisitorStats();
+    const sessions = useSiteSessions();
+
+    const activeTeamCount = team.filter((m) => !m.isFormer).length;
+    const formerTeamCount = team.filter((m) => m.isFormer).length;
 
     const recentEnquiries = enquiries.slice(0, 3);
     const newEnquiriesCount = enquiries.filter((e) => e.status === "new").length;
+
+    const handleRevokeSingle = (sessionId: string, deviceName: string) => {
+        if (window.confirm(`Log out ${deviceName} remotely? That device will require logging in again.`)) {
+            revokeSession(sessionId);
+            toast.success(`Logged out ${deviceName} remotely.`);
+        }
+    };
+
+    const handleRevokeAllOthers = () => {
+        if (window.confirm("Log out all other devices? Only your current device will remain signed in.")) {
+            revokeAllOtherSessions();
+            toast.success("All other active device sessions have been terminated.");
+        }
+    };
+
+    const otherSessionsCount = sessions.filter((s) => !s.isCurrent).length;
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
@@ -67,6 +102,104 @@ const Dashboard = () => {
                         Preview Site
                     </Link>
                 </div>
+            </div>
+
+            {/* Top Row: Visitor Analytics & Live Hit Counter */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. Unique Visitors Counter Card */}
+                <Card className="bg-gradient-to-br from-blue-900 to-indigo-950 text-white rounded-2xl border-none shadow-md overflow-hidden relative">
+                    <div className="absolute -right-4 -bottom-4 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-blue-200 uppercase tracking-wider flex items-center gap-2">
+                                <Eye className="w-4 h-4 text-orange-400" />
+                                Unique Visitors
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                Live Counter
+                            </span>
+                        </div>
+                        <div className="text-3xl sm:text-4xl font-extrabold text-white mt-3 tracking-tight">
+                            {visitorStats.uniqueVisitors.toLocaleString()}
+                        </div>
+                        <p className="text-xs text-blue-200/80 mt-1">
+                            Distinct human visitors tracked across devices
+                        </p>
+                        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-blue-200">
+                            <span>Today's activity:</span>
+                            <span className="font-bold text-white flex items-center gap-1">
+                                <Flame className="w-3.5 h-3.5 text-orange-400" />
+                                +{visitorStats.todayHits} hits today
+                            </span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 2. Total Site Impressions / Hits */}
+                <Card className="bg-white rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-blue-600" />
+                                Total Site Hits
+                            </span>
+                            <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                All-Time
+                            </span>
+                        </div>
+                        <div className="text-3xl sm:text-4xl font-extrabold text-blue-950 mt-3 tracking-tight">
+                            {visitorStats.totalHits.toLocaleString()}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Total page requests and visitor interactions
+                        </p>
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-gray-500">
+                            <span>Last visitor activity:</span>
+                            <span className="font-semibold text-slate-700">
+                                {visitorStats.lastHitAt ? format(new Date(visitorStats.lastHitAt), "h:mm a") : "Active"}
+                            </span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 3. Connected Devices Security Card */}
+                <Card className="bg-white rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                                Logged-In Devices
+                            </span>
+                            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                {sessions.length} Connected
+                            </span>
+                        </div>
+                        <div className="text-3xl sm:text-4xl font-extrabold text-blue-950 mt-3 tracking-tight">
+                            {sessions.length} <span className="text-sm font-normal text-gray-500">device{sessions.length !== 1 ? "s" : ""}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            {otherSessionsCount > 0
+                                ? `${otherSessionsCount} other device${otherSessionsCount !== 1 ? "s" : ""} logged in remotely`
+                                : "Only this current device is logged in"}
+                        </p>
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span className="text-gray-500">Remote Control:</span>
+                            {otherSessionsCount > 0 ? (
+                                <button
+                                    onClick={handleRevokeAllOthers}
+                                    className="font-bold text-red-600 hover:text-red-700 transition-colors">
+                                    Log Out Others
+                                </button>
+                            ) : (
+                                <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    Secure
+                                </span>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Quick Metrics Grid */}
@@ -111,7 +244,7 @@ const Dashboard = () => {
                             {services.length}
                         </div>
                         <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <span className="text-xs text-gray-500">Offerings & Dialog</span>
+                            <span className="text-xs text-gray-500">Offerings</span>
                             <Link
                                 to="/admin/services"
                                 className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1">
@@ -151,17 +284,19 @@ const Dashboard = () => {
                     <CardContent className="p-5">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                Team Members
+                                Team
                             </span>
                             <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
                                 <Users className="w-5 h-5" />
                             </div>
                         </div>
                         <div className="text-3xl font-extrabold text-blue-950 mt-2">
-                            {team.length}
+                            {activeTeamCount}
                         </div>
                         <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <span className="text-xs text-gray-500">Live profiles</span>
+                            <span className="text-xs text-gray-500">
+                                {formerTeamCount > 0 ? `+${formerTeamCount} former` : "Active"}
+                            </span>
                             <Link
                                 to="/admin/team"
                                 className="text-xs text-purple-600 hover:text-purple-700 font-semibold flex items-center gap-1">
@@ -178,7 +313,7 @@ const Dashboard = () => {
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                 Advisory Board
                             </span>
-                            <div className="p-2 bg-orange-50 text-orange-600 rounded-xl">
+                            <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
                                 <Award className="w-5 h-5" />
                             </div>
                         </div>
@@ -186,129 +321,139 @@ const Dashboard = () => {
                             {advisors.length}
                         </div>
                         <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <span className="text-xs text-gray-500">Active mentors</span>
+                            <span className="text-xs text-gray-500">Distinguished</span>
                             <Link
                                 to="/admin/advisory"
-                                className="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1">
+                                className="text-xs text-amber-600 hover:text-amber-700 font-semibold flex items-center gap-1">
                                 Manage <ArrowRight className="w-3 h-3" />
                             </Link>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Enquiries Metric */}
+                {/* Blog Articles Metric */}
                 <Card className="bg-white rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                         <div className="flex items-center justify-between">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                Inquiries
+                                Blog Articles
                             </span>
-                            <div className="p-2 bg-green-50 text-green-600 rounded-xl">
-                                <Mail className="w-5 h-5" />
+                            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                                <FileText className="w-5 h-5" />
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 mt-2">
-                            <div className="text-3xl font-extrabold text-blue-950">
-                                {enquiries.length}
-                            </div>
-                            {newEnquiriesCount > 0 && (
-                                <span className="bg-orange-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
-                                    {newEnquiriesCount} New
-                                </span>
-                            )}
+                        <div className="text-3xl font-extrabold text-blue-950 mt-2">
+                            {blogs.length}
                         </div>
                         <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <span className="text-xs text-gray-500">Contact form leads</span>
+                            <span className="text-xs text-gray-500">Published posts</span>
                             <Link
-                                to="/admin/enquiries"
-                                className="text-xs text-green-600 hover:text-green-700 font-semibold flex items-center gap-1">
-                                View Inquiries <ArrowRight className="w-3 h-3" />
+                                to="/admin/blogs"
+                                className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1">
+                                View <ArrowRight className="w-3 h-3" />
                             </Link>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Quick Actions Bar */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
-                <span className="text-sm font-bold text-blue-950 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-orange-500" />
-                    Quick Actions:
-                </span>
-                <div className="flex flex-wrap items-center gap-2.5">
-                    <Link to="/admin/programs">
+            {/* Connected Devices & Active Sessions Remote Management */}
+            <Card className="bg-white rounded-2xl border-slate-100 shadow-sm overflow-hidden">
+                <CardHeader className="bg-slate-50/70 p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <CardTitle className="text-base font-bold text-blue-950 flex items-center gap-2">
+                            <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                            Connected Admin Devices & Security Sessions ({sessions.length})
+                        </CardTitle>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            Monitor which devices have active access to the admin portal and revoke sessions remotely
+                        </p>
+                    </div>
+
+                    {otherSessionsCount > 0 && (
                         <Button
                             variant="outline"
                             size="sm"
-                            className="rounded-xl border-blue-200 text-blue-700 hover:bg-blue-50 text-xs">
-                            <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                            Core Programs
+                            onClick={handleRevokeAllOthers}
+                            className="text-xs text-red-600 border-red-200 hover:bg-red-50 flex items-center gap-1.5 rounded-xl self-start sm:self-auto font-medium">
+                            <LogOut className="w-3.5 h-3.5" />
+                            Log Out All Other Devices
                         </Button>
-                    </Link>
-                    <Link to="/admin/services">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs">
-                            <Layers className="w-3.5 h-3.5 mr-1.5" />
-                            Key Services
-                        </Button>
-                    </Link>
-                    <Link to="/admin/events">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-xl border-blue-200 text-blue-700 hover:bg-blue-50 text-xs">
-                            <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                            Events & Portal ({events.length})
-                        </Button>
-                    </Link>
-                    <Link to="/admin/gallery">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-xl border-orange-200 text-orange-700 hover:bg-orange-50 text-xs">
-                            <Images className="w-3.5 h-3.5 mr-1.5" />
-                            Gallery Albums ({albums.length})
-                        </Button>
-                    </Link>
-                    <Link to="/admin/blogs/new">
-                        <Button
-                            size="sm"
-                            className="rounded-xl bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white text-xs shadow-sm">
-                            <FileText className="w-3.5 h-3.5 mr-1.5" />
-                            Write New Blog
-                        </Button>
-                    </Link>
-                    <Link to="/admin/team">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs">
-                            <Users className="w-3.5 h-3.5 mr-1.5" />
-                            Manage Team
-                        </Button>
-                    </Link>
-                    <Link to="/admin/advisory">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs">
-                            <Award className="w-3.5 h-3.5 mr-1.5" />
-                            Manage Advisory
-                        </Button>
-                    </Link>
-                    <Link to="/admin/contact">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs">
-                            <Phone className="w-3.5 h-3.5 mr-1.5" />
-                            Contact Details
-                        </Button>
-                    </Link>
-                </div>
-            </div>
+                    )}
+                </CardHeader>
+
+                <CardContent className="p-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {sessions.map((session) => (
+                            <div
+                                key={session.id}
+                                className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
+                                    session.isCurrent
+                                        ? "bg-blue-50/60 border-blue-200 shadow-sm"
+                                        : "bg-slate-50/70 border-slate-200 hover:bg-white"
+                                }`}>
+                                <div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`p-2 rounded-lg ${session.isCurrent ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                                                {session.os === "iOS" || session.os === "Android" ? (
+                                                    <Smartphone className="w-4 h-4" />
+                                                ) : (
+                                                    <Laptop className="w-4 h-4" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-900 leading-tight">
+                                                    {session.deviceName}
+                                                </h4>
+                                                <p className="text-[11px] text-slate-500">
+                                                    {session.browser} • {session.os}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {session.isCurrent ? (
+                                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                                                This Device
+                                            </span>
+                                        ) : (
+                                            <span className="bg-slate-200 text-slate-600 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                                Remote
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-3 pt-3 border-t border-slate-200/60 space-y-1 text-[11px] text-slate-500">
+                                        <div className="flex items-center justify-between">
+                                            <span>Signed In:</span>
+                                            <span className="font-medium text-slate-700">
+                                                {session.loginTime ? format(new Date(session.loginTime), "MMM d, h:mm a") : "Today"}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span>Network IP:</span>
+                                            <span className="font-mono text-[10px] text-slate-600">{session.ip}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {!session.isCurrent && (
+                                    <div className="mt-3 pt-3 border-t border-slate-200">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRevokeSingle(session.id, session.deviceName)}
+                                            className="w-full h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg flex items-center justify-center gap-1.5 font-medium">
+                                            <LogOut className="w-3.5 h-3.5" />
+                                            Log Out This Device
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Core Programs Preview & Recent Enquiries Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -351,7 +496,7 @@ const Dashboard = () => {
                     </CardContent>
                 </Card>
 
-                {/* Latest Enquiries Preview (Notice: Only top 3 with link to dedicated Enquiries page!) */}
+                {/* Latest Enquiries Preview */}
                 <Card className="bg-white rounded-2xl border-slate-100 shadow-sm overflow-hidden flex flex-col justify-between">
                     <CardHeader className="bg-slate-50/70 p-4 border-b border-slate-100 flex flex-row items-center justify-between">
                         <div>

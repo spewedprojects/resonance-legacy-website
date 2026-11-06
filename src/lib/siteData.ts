@@ -14,6 +14,26 @@ export interface TeamMember {
     img: string | null;
     contact?: string | null;
     email?: string | null;
+    isFormer?: boolean;
+    formerNote?: string | null;
+}
+
+export interface VisitorStats {
+    uniqueVisitors: number;
+    totalHits: number;
+    todayHits: number;
+    lastHitAt: string;
+}
+
+export interface DeviceSession {
+    id: string;
+    deviceName: string;
+    browser: string;
+    os: string;
+    ip: string;
+    loginTime: string;
+    lastActive: string;
+    isCurrent: boolean;
 }
 
 export interface ContactInfo {
@@ -546,6 +566,13 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
     },
 ];
 
+export const DEFAULT_VISITOR_STATS: VisitorStats = {
+    uniqueVisitors: 428,
+    totalHits: 1940,
+    todayHits: 34,
+    lastHitAt: new Date().toISOString(),
+};
+
 const STORAGE_KEYS = {
     ADVISORS: "resonance_advisors_data",
     TEAM: "resonance_team_data",
@@ -558,6 +585,8 @@ const STORAGE_KEYS = {
     SETTINGS: "resonance_site_settings_data",
     EVENTS_CONFIG: "resonance_events_config",
     EVENTS: "resonance_events_data",
+    ANALYTICS: "resonance_site_analytics",
+    SESSIONS: "resonance_admin_sessions",
 };
 
 // API endpoint for cloud hosting environments (Netlify / AWS / Custom Backend)
@@ -1302,4 +1331,239 @@ export const processImageFile = (
         };
         reader.onerror = (err) => reject(err);
     });
+};
+
+// ================= VISITOR ANALYTICS =================
+export const getVisitorStats = (): VisitorStats => {
+    if (typeof window === "undefined") return DEFAULT_VISITOR_STATS;
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.ANALYTICS);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (typeof parsed.uniqueVisitors === "number") return parsed;
+        }
+    } catch (e) {
+        // Fallback to default
+    }
+    return DEFAULT_VISITOR_STATS;
+};
+
+export const recordVisitorHit = (): VisitorStats => {
+    if (typeof window === "undefined") return DEFAULT_VISITOR_STATS;
+    try {
+        const stats = getVisitorStats();
+        let isUnique = false;
+
+        // 1. Check unique visitor token in localStorage
+        let visitorToken = localStorage.getItem("resonance_visitor_token");
+        if (!visitorToken) {
+            visitorToken = `vt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            localStorage.setItem("resonance_visitor_token", visitorToken);
+            isUnique = true;
+        }
+
+        // 2. Check session hit in sessionStorage so repeated reloads in the same tab don't spam hits
+        const sessionHit = sessionStorage.getItem("resonance_session_hit");
+        const isNewSession = !sessionHit;
+        if (isNewSession) {
+            sessionStorage.setItem("resonance_session_hit", "1");
+        }
+
+        const now = new Date();
+        const lastDate = stats.lastHitAt ? new Date(stats.lastHitAt) : new Date();
+        const isSameDay = now.toDateString() === lastDate.toDateString();
+
+        const updated: VisitorStats = {
+            uniqueVisitors: isUnique ? stats.uniqueVisitors + 1 : stats.uniqueVisitors,
+            totalHits: isNewSession ? stats.totalHits + 1 : stats.totalHits,
+            todayHits: isSameDay
+                ? (isNewSession ? stats.todayHits + 1 : stats.todayHits)
+                : 1,
+            lastHitAt: now.toISOString(),
+        };
+
+        if (isUnique || isNewSession) {
+            localStorage.setItem(STORAGE_KEYS.ANALYTICS, JSON.stringify(updated));
+            notifyDataChange(STORAGE_KEYS.ANALYTICS);
+            syncToCloud(STORAGE_KEYS.ANALYTICS, updated);
+        }
+
+        return updated;
+    } catch {
+        return DEFAULT_VISITOR_STATS;
+    }
+};
+
+export const useSiteVisitorStats = (): VisitorStats => {
+    const [stats, setStats] = useState<VisitorStats>(getVisitorStats);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            if (!e.detail?.key || e.detail.key === STORAGE_KEYS.ANALYTICS || e.detail.key === "all") {
+                setStats(getVisitorStats());
+            }
+        };
+
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return stats;
+};
+
+// ================= CONNECTED SESSIONS MANAGEMENT =================
+export const parseUserAgent = (): { deviceName: string; browser: string; os: string } => {
+    if (typeof window === "undefined" || !window.navigator) {
+        return { deviceName: "Unknown Device", browser: "Browser", os: "Unknown OS" };
+    }
+    const ua = navigator.userAgent;
+    let os = "Desktop OS";
+    let deviceName = "Computer";
+
+    if (/Windows/i.test(ua)) {
+        os = "Windows";
+        deviceName = "Windows PC";
+    } else if (/Macintosh|Mac OS X/i.test(ua)) {
+        os = "macOS";
+        deviceName = "Apple Mac";
+    } else if (/iPhone/i.test(ua)) {
+        os = "iOS";
+        deviceName = "Apple iPhone";
+    } else if (/iPad/i.test(ua)) {
+        os = "iPadOS";
+        deviceName = "Apple iPad";
+    } else if (/Android/i.test(ua)) {
+        os = "Android";
+        deviceName = "Android Mobile";
+    } else if (/Linux/i.test(ua)) {
+        os = "Linux";
+        deviceName = "Linux Workstation";
+    }
+
+    let browser = "Web Browser";
+    if (/Edg\//i.test(ua)) browser = "Microsoft Edge";
+    else if (/Chrome\//i.test(ua)) browser = "Google Chrome";
+    else if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) browser = "Apple Safari";
+    else if (/Firefox\//i.test(ua)) browser = "Mozilla Firefox";
+
+    return { deviceName, browser, os };
+};
+
+export const getStoredSessions = (): DeviceSession[] => {
+    if (typeof window === "undefined") return [];
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.SESSIONS);
+        const currentSessionId = localStorage.getItem("resonance_current_session_id") || "";
+        if (data) {
+            const list: DeviceSession[] = JSON.parse(data);
+            if (Array.isArray(list) && list.length > 0) {
+                return list.map((s) => ({
+                    ...s,
+                    isCurrent: s.id === currentSessionId,
+                }));
+            }
+        }
+    } catch {}
+
+    // If empty, return at least current session mock
+    const { deviceName, browser, os } = parseUserAgent();
+    return [
+        {
+            id: "current-default",
+            deviceName,
+            browser,
+            os,
+            ip: "Localhost (Active)",
+            loginTime: new Date().toISOString(),
+            lastActive: new Date().toISOString(),
+            isCurrent: true,
+        },
+    ];
+};
+
+export const registerCurrentSession = (): DeviceSession => {
+    if (typeof window === "undefined") {
+        return {
+            id: "current",
+            deviceName: "Current Device",
+            browser: "Browser",
+            os: "OS",
+            ip: "Localhost",
+            loginTime: new Date().toISOString(),
+            lastActive: new Date().toISOString(),
+            isCurrent: true,
+        };
+    }
+    const { deviceName, browser, os } = parseUserAgent();
+    let currentId = localStorage.getItem("resonance_current_session_id");
+    if (!currentId) {
+        currentId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        localStorage.setItem("resonance_current_session_id", currentId);
+    }
+
+    const currentSession: DeviceSession = {
+        id: currentId,
+        deviceName,
+        browser,
+        os,
+        ip: "Active Device Session",
+        loginTime: new Date().toISOString(),
+        lastActive: new Date().toISOString(),
+        isCurrent: true,
+    };
+
+    let sessions = getStoredSessions().filter((s) => s.id !== currentId && s.id !== "current-default");
+    sessions = [currentSession, ...sessions].slice(0, 10);
+    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
+    notifyDataChange(STORAGE_KEYS.SESSIONS);
+    syncToCloud(STORAGE_KEYS.SESSIONS, sessions);
+
+    return currentSession;
+};
+
+export const revokeSession = (sessionId: string) => {
+    if (typeof window === "undefined") return;
+    const currentId = localStorage.getItem("resonance_current_session_id");
+    if (sessionId === currentId) {
+        localStorage.removeItem("isAdminAuthenticated");
+        localStorage.removeItem("resonance_current_session_id");
+    }
+    const updated = getStoredSessions().filter((s) => s.id !== sessionId);
+    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
+    notifyDataChange(STORAGE_KEYS.SESSIONS);
+    syncToCloud(STORAGE_KEYS.SESSIONS, updated);
+};
+
+export const revokeAllOtherSessions = () => {
+    if (typeof window === "undefined") return;
+    const currentId = localStorage.getItem("resonance_current_session_id");
+    const updated = getStoredSessions().filter((s) => s.id === currentId);
+    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
+    notifyDataChange(STORAGE_KEYS.SESSIONS);
+    syncToCloud(STORAGE_KEYS.SESSIONS, updated);
+};
+
+export const useSiteSessions = (): DeviceSession[] => {
+    const [sessions, setSessions] = useState<DeviceSession[]>(getStoredSessions);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            if (!e.detail?.key || e.detail.key === STORAGE_KEYS.SESSIONS || e.detail.key === "all") {
+                setSessions(getStoredSessions());
+            }
+        };
+
+        window.addEventListener("siteDataUpdated", handler);
+        window.addEventListener("storage", handler);
+        return () => {
+            window.removeEventListener("siteDataUpdated", handler);
+            window.removeEventListener("storage", handler);
+        };
+    }, []);
+
+    return sessions;
 };

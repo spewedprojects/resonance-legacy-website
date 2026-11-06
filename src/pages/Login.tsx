@@ -3,16 +3,15 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-    Card,
-    CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
     login,
     setupInitialPassword,
     resetPasswordWithMasterKey,
     isPasswordInitialized,
+    getPasswordLastChanged,
 } from "@/lib/auth";
+import { registerCurrentSession } from "@/lib/siteData";
 import { toast } from "sonner";
 import {
     Lock,
@@ -22,8 +21,9 @@ import {
     ArrowLeft,
     ShieldCheck,
     Sparkles,
-    CheckCircle2,
     AlertCircle,
+    Loader2,
+    CheckCircle2,
 } from "lucide-react";
 
 type AuthMode = "login" | "setup" | "reset";
@@ -31,13 +31,13 @@ type AuthMode = "login" | "setup" | "reset";
 const Login = () => {
     const navigate = useNavigate();
 
-    // Check if initial setup is needed
+    // The portal defaults to standard Login. Master Key fields are only shown on demand or when explicitly requested.
+    const [mode, setMode] = useState<AuthMode>("login");
     const [isInitialized, setIsInitialized] = useState<boolean>(() => isPasswordInitialized());
-    const [mode, setMode] = useState<AuthMode>(() => {
-        return isPasswordInitialized() ? "login" : "setup";
-    });
+    const [lastChangedTime, setLastChangedTime] = useState<string | null>(() => getPasswordLastChanged());
 
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState("Verifying credentials...");
 
     // Form inputs
     const [password, setPassword] = useState("");
@@ -52,6 +52,7 @@ const Login = () => {
 
     useEffect(() => {
         setIsInitialized(isPasswordInitialized());
+        setLastChangedTime(getPasswordLastChanged());
     }, []);
 
     // 1. Standard Login Handler
@@ -63,9 +64,15 @@ const Login = () => {
         }
 
         setIsLoading(true);
+        setLoadingMessage("Verifying administrator credentials...");
+
         try {
             const success = await login(password.trim());
             if (success) {
+                setLoadingMessage("Establishing secure session...");
+                // Register device session for remote management
+                registerCurrentSession();
+
                 toast.success("Welcome back! Signed in successfully.");
                 navigate("/admin");
             } else {
@@ -103,11 +110,15 @@ const Login = () => {
         }
 
         setIsLoading(true);
+        setLoadingMessage("Securing administrator account with Master Key...");
+
         try {
             const res = await setupInitialPassword(masterKey.trim(), newPassword);
             if (res.success) {
+                registerCurrentSession();
                 toast.success(res.message);
                 setIsInitialized(true);
+                setLastChangedTime(new Date().toISOString());
                 navigate("/admin");
             } else {
                 toast.error(res.message);
@@ -144,11 +155,15 @@ const Login = () => {
         }
 
         setIsLoading(true);
+        setLoadingMessage("Validating Master Key & updating password...");
+
         try {
             const res = await resetPasswordWithMasterKey(masterKey.trim(), newPassword);
             if (res.success) {
+                registerCurrentSession();
                 toast.success(res.message);
                 setIsInitialized(true);
+                setLastChangedTime(new Date().toISOString());
                 navigate("/admin");
             } else {
                 toast.error(res.message);
@@ -159,6 +174,15 @@ const Login = () => {
             setIsLoading(false);
         }
     };
+
+    // Formatted password last changed display
+    const formattedLastChanged = lastChangedTime
+        ? new Date(lastChangedTime).toLocaleDateString("en-IN", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+          })
+        : null;
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-4">
@@ -173,7 +197,12 @@ const Login = () => {
                     </Link>
                 </div>
 
-                <Card className="border-slate-800 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden">
+                <Card className="border-slate-800 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden relative">
+                    {/* Top Active Loading Shimmer Bar */}
+                    {isLoading && (
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-blue-600 to-indigo-600 animate-pulse z-20" />
+                    )}
+
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white p-6 text-center">
                         <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mx-auto mb-3 shadow-inner">
@@ -201,6 +230,14 @@ const Login = () => {
                                 ? "Reset your password with your Master Key without needing your previous password."
                                 : "Enter your administrator password to access the Resonance control suite."}
                         </p>
+
+                        {/* Password Last Changed Security Note */}
+                        {formattedLastChanged && mode === "login" && (
+                            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 text-blue-200 text-[11px] font-medium rounded-full border border-white/15">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Password updated: {formattedLastChanged}</span>
+                            </div>
+                        )}
                     </div>
 
                     <CardContent className="p-6">
@@ -210,10 +247,10 @@ const Login = () => {
                                 <div className="p-3 bg-blue-50/70 border border-blue-200/60 rounded-xl text-xs text-blue-900 space-y-1">
                                     <div className="font-bold flex items-center gap-1.5 text-blue-950">
                                         <Sparkles className="w-3.5 h-3.5 text-orange-500" />
-                                        First-Time Deployment Detected
+                                        First-Time Setup Mode
                                     </div>
                                     <p className="text-[11px] text-blue-800 leading-relaxed">
-                                        To verify website ownership, enter the Master Setup Key set in your hosting environment (or default master passphrase), then establish your private admin password.
+                                        Enter the Master Setup Key set in your hosting environment (or default master passphrase), then establish your private admin password.
                                     </p>
                                 </div>
 
@@ -234,6 +271,7 @@ const Login = () => {
                                             className="pr-10 rounded-xl text-xs font-mono"
                                             required
                                             autoFocus
+                                            disabled={isLoading}
                                         />
                                         <button
                                             type="button"
@@ -264,6 +302,7 @@ const Login = () => {
                                             onChange={(e) => setNewPassword(e.target.value)}
                                             className="pr-10 rounded-xl text-xs"
                                             required
+                                            disabled={isLoading}
                                         />
                                         <button
                                             type="button"
@@ -293,6 +332,7 @@ const Login = () => {
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         className="rounded-xl text-xs"
                                         required
+                                        disabled={isLoading}
                                     />
                                 </div>
 
@@ -300,16 +340,24 @@ const Login = () => {
                                     <Button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl py-2.5 font-semibold text-xs sm:text-sm shadow-md transition-all">
-                                        {isLoading ? "Securing Account..." : "Save Password & Launch Portal"}
+                                        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl py-2.5 font-semibold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                                        {isLoading ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                                <span>{loadingMessage}</span>
+                                            </>
+                                        ) : (
+                                            <span>Save Password & Launch Portal</span>
+                                        )}
                                     </Button>
 
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         onClick={() => setMode("login")}
+                                        disabled={isLoading}
                                         className="w-full text-xs text-slate-500 hover:text-slate-800">
-                                        Already set up? Switch to standard login
+                                        Switch back to standard login
                                     </Button>
                                 </div>
                             </form>
@@ -343,6 +391,7 @@ const Login = () => {
                                             className="pr-10 rounded-xl text-xs"
                                             autoFocus
                                             required
+                                            disabled={isLoading}
                                         />
                                         <button
                                             type="button"
@@ -360,26 +409,33 @@ const Login = () => {
                                 <Button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-xl py-2.5 font-semibold text-sm shadow-md transition-all">
-                                    {isLoading ? "Verifying..." : "Sign In to Admin Portal"}
+                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-xl py-2.5 font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                            <span>{loadingMessage}</span>
+                                        </>
+                                    ) : (
+                                        <span>Sign In to Admin Portal</span>
+                                    )}
                                 </Button>
 
                                 <div className="pt-2 text-center space-y-1.5">
                                     <button
                                         type="button"
                                         onClick={() => setMode("reset")}
+                                        disabled={isLoading}
                                         className="text-xs text-slate-500 hover:text-blue-700 font-medium transition-colors block mx-auto">
                                         Locked out? Reset using Master Key
                                     </button>
 
-                                    {!isInitialized && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setMode("setup")}
-                                            className="text-xs text-orange-600 hover:text-orange-700 font-bold transition-colors block mx-auto">
-                                            Initial setup needed? Click here
-                                        </button>
-                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => setMode("setup")}
+                                        disabled={isLoading}
+                                        className="text-[11px] text-slate-400 hover:text-orange-600 transition-colors block mx-auto">
+                                        Need first-time setup? Click here
+                                    </button>
                                 </div>
                             </form>
                         )}
@@ -390,7 +446,7 @@ const Login = () => {
                                 <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-xl text-xs text-amber-900 space-y-1">
                                     <div className="font-bold flex items-center gap-1.5 text-amber-950">
                                         <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                                        Master Key Recovery
+                                        Master Key Emergency Recovery
                                     </div>
                                     <p className="text-[11px] text-amber-800 leading-relaxed">
                                         No previous password is required. Enter your secret Master Key to instantly reset and establish a new admin password.
@@ -414,6 +470,7 @@ const Login = () => {
                                             className="pr-10 rounded-xl text-xs font-mono"
                                             required
                                             autoFocus
+                                            disabled={isLoading}
                                         />
                                         <button
                                             type="button"
@@ -444,6 +501,7 @@ const Login = () => {
                                             onChange={(e) => setNewPassword(e.target.value)}
                                             className="pr-10 rounded-xl text-xs"
                                             required
+                                            disabled={isLoading}
                                         />
                                         <button
                                             type="button"
@@ -473,6 +531,7 @@ const Login = () => {
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         className="rounded-xl text-xs"
                                         required
+                                        disabled={isLoading}
                                     />
                                 </div>
 
@@ -480,14 +539,22 @@ const Login = () => {
                                     <Button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl py-2.5 font-semibold text-xs sm:text-sm shadow-md transition-all">
-                                        {isLoading ? "Updating..." : "Reset Password & Sign In"}
+                                        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl py-2.5 font-semibold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                                        {isLoading ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                                <span>{loadingMessage}</span>
+                                            </>
+                                        ) : (
+                                            <span>Reset Password & Sign In</span>
+                                        )}
                                     </Button>
 
                                     <Button
                                         type="button"
                                         variant="outline"
                                         onClick={() => setMode("login")}
+                                        disabled={isLoading}
                                         className="w-full rounded-xl text-xs text-slate-600">
                                         Back to Sign In
                                     </Button>

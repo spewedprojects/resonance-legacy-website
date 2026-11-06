@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { syncFromCloud } from "@/lib/siteData";
+import { syncFromCloud, recordVisitorHit } from "@/lib/siteData";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -32,6 +32,9 @@ const queryClient = new QueryClient();
 
 const App = () => {
     useEffect(() => {
+        // Record unique visitor hit & page view analytics
+        recordVisitorHit();
+
         // Asynchronously sync content from cloud backend if available
         syncFromCloud();
 
