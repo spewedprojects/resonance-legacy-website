@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
     Card,
-    CardHeader,
-    CardTitle,
     CardContent,
-    CardDescription,
 } from "@/components/ui/card";
-import { login, changePassword } from "@/lib/auth";
+import {
+    login,
+    setupInitialPassword,
+    resetPasswordWithMasterKey,
+    isPasswordInitialized,
+} from "@/lib/auth";
 import { toast } from "sonner";
 import {
     Lock,
@@ -18,74 +20,143 @@ import {
     Eye,
     EyeOff,
     ArrowLeft,
-    CheckCircle2,
     ShieldCheck,
+    Sparkles,
+    CheckCircle2,
+    AlertCircle,
 } from "lucide-react";
+
+type AuthMode = "login" | "setup" | "reset";
 
 const Login = () => {
     const navigate = useNavigate();
 
-    // Mode: 'login' | 'change-password'
-    const [mode, setMode] = useState<"login" | "change-password">("login");
+    // Check if initial setup is needed
+    const [isInitialized, setIsInitialized] = useState<boolean>(() => isPasswordInitialized());
+    const [mode, setMode] = useState<AuthMode>(() => {
+        return isPasswordInitialized() ? "login" : "setup";
+    });
 
-    // Login Form State
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Form inputs
     const [password, setPassword] = useState("");
-    const [showLoginPassword, setShowLoginPassword] = useState(false);
-
-    // Change Password Form State
-    const [currentPassword, setCurrentPassword] = useState("");
+    const [masterKey, setMasterKey] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+
+    // Visibility toggles
+    const [showPassword, setShowPassword] = useState(false);
+    const [showMasterKey, setShowMasterKey] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
 
-    const handleLogin = (e: React.FormEvent) => {
+    useEffect(() => {
+        setIsInitialized(isPasswordInitialized());
+    }, []);
+
+    // 1. Standard Login Handler
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!password.trim()) {
-            toast.error("Please enter the admin password");
+            toast.error("Please enter the administrator password");
             return;
         }
 
-        if (login(password.trim())) {
-            toast.success("Welcome back! Signed in successfully");
-            navigate("/admin");
-        } else {
-            toast.error("Invalid password. Please check and try again.");
+        setIsLoading(true);
+        try {
+            const success = await login(password.trim());
+            if (success) {
+                toast.success("Welcome back! Signed in successfully.");
+                navigate("/admin");
+            } else {
+                toast.error("Invalid password. Please check and try again, or use Master Key recovery.");
+            }
+        } catch (err) {
+            toast.error("Login verification failed. Please try again.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const handleChangePassword = (e: React.FormEvent) => {
+    // 2. First-Time Setup Handler
+    const handleInitialSetup = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!currentPassword) {
-            toast.error("Please enter your last used (current) password");
+        if (!masterKey.trim()) {
+            toast.error("Please enter your Master Setup Key");
             return;
         }
 
         if (!newPassword) {
-            toast.error("Please enter a new password");
+            toast.error("Please enter your desired administrator password");
             return;
         }
 
-        if (newPassword.length < 4) {
-            toast.error("New password must be at least 4 characters long");
+        if (newPassword.length < 6) {
+            toast.error("Password must be at least 6 characters long");
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            toast.error("New password and confirmation password do not match");
+            toast.error("New password and confirmation do not match");
             return;
         }
 
-        const result = changePassword(currentPassword, newPassword);
+        setIsLoading(true);
+        try {
+            const res = await setupInitialPassword(masterKey.trim(), newPassword);
+            if (res.success) {
+                toast.success(res.message);
+                setIsInitialized(true);
+                navigate("/admin");
+            } else {
+                toast.error(res.message);
+            }
+        } catch (err) {
+            toast.error("Failed to complete initial setup. Please check your credentials.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-        if (result.success) {
-            // Auto login with new password
-            login(newPassword);
-            toast.success("Password updated successfully! Welcome to the admin portal.");
-            navigate("/admin");
-        } else {
-            toast.error(result.message);
+    // 3. Emergency Password Reset Handler
+    const handleEmergencyReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!masterKey.trim()) {
+            toast.error("Please enter your Master Verification Key");
+            return;
+        }
+
+        if (!newPassword) {
+            toast.error("Please enter your new administrator password");
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            toast.error("New password must be at least 6 characters long");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            toast.error("New password and confirmation do not match");
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const res = await resetPasswordWithMasterKey(masterKey.trim(), newPassword);
+            if (res.success) {
+                toast.success(res.message);
+                setIsInitialized(true);
+                navigate("/admin");
+            } else {
+                toast.error(res.message);
+            }
+        } catch (err) {
+            toast.error("Password reset failed. Please verify your Master Key.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -106,106 +177,69 @@ const Login = () => {
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white p-6 text-center">
                         <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mx-auto mb-3 shadow-inner">
-                            {mode === "login" ? (
-                                <Lock className="w-6 h-6 text-orange-400" />
-                            ) : (
+                            {mode === "setup" ? (
+                                <ShieldCheck className="w-6 h-6 text-orange-400" />
+                            ) : mode === "reset" ? (
                                 <KeyRound className="w-6 h-6 text-orange-400" />
+                            ) : (
+                                <Lock className="w-6 h-6 text-orange-400" />
                             )}
                         </div>
+
                         <h1 className="text-xl font-bold tracking-tight">
-                            {mode === "login"
-                                ? "Resonance Admin Portal"
-                                : "Change Admin Password"}
+                            {mode === "setup"
+                                ? "Initial Admin Setup"
+                                : mode === "reset"
+                                ? "Reset Admin Password"
+                                : "Resonance Admin Portal"}
                         </h1>
-                        <p className="text-blue-200 text-xs mt-1">
-                            {mode === "login"
-                                ? "Enter your admin credentials to manage site content"
-                                : "Update your admin password using your last used password"}
+
+                        <p className="text-blue-200 text-xs mt-1 leading-relaxed max-w-xs mx-auto">
+                            {mode === "setup"
+                                ? "Claim and secure your newly hosted administrator account using your Master Setup Key."
+                                : mode === "reset"
+                                ? "Reset your password with your Master Key without needing your previous password."
+                                : "Enter your administrator password to access the Resonance control suite."}
                         </p>
                     </div>
 
                     <CardContent className="p-6">
-                        {mode === "login" ? (
-                            /* ================= LOGIN FORM ================= */
-                            <form onSubmit={handleLogin} className="space-y-4">
-                                <div className="space-y-1.5">
-                                    <div className="flex items-center justify-between">
-                                        <Label
-                                            htmlFor="login-password"
-                                            className="text-xs font-bold text-slate-700">
-                                            Admin Password
-                                        </Label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setMode("change-password")}
-                                            className="text-xs text-blue-600 hover:text-blue-800 font-semibold transition-colors">
-                                            Change Password?
-                                        </button>
+                        {/* ================= MODE: SETUP ================= */}
+                        {mode === "setup" && (
+                            <form onSubmit={handleInitialSetup} className="space-y-4">
+                                <div className="p-3 bg-blue-50/70 border border-blue-200/60 rounded-xl text-xs text-blue-900 space-y-1">
+                                    <div className="font-bold flex items-center gap-1.5 text-blue-950">
+                                        <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                                        First-Time Deployment Detected
                                     </div>
-
-                                    <div className="relative">
-                                        <Input
-                                            id="login-password"
-                                            type={showLoginPassword ? "text" : "password"}
-                                            placeholder="Enter password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            className="pr-10 rounded-xl"
-                                            autoFocus
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setShowLoginPassword(!showLoginPassword)
-                                            }
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                            {showLoginPassword ? (
-                                                <EyeOff className="w-4 h-4" />
-                                            ) : (
-                                                <Eye className="w-4 h-4" />
-                                            )}
-                                        </button>
-                                    </div>
+                                    <p className="text-[11px] text-blue-800 leading-relaxed">
+                                        To verify website ownership, enter the Master Setup Key set in your hosting environment (or default master passphrase), then establish your private admin password.
+                                    </p>
                                 </div>
 
-                                <Button
-                                    type="submit"
-                                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl py-2.5 font-semibold text-sm shadow-md transition-all">
-                                    Sign In to Admin
-                                </Button>
-
-
-                            </form>
-                        ) : (
-                            /* ================= CHANGE PASSWORD FORM ================= */
-                            <form onSubmit={handleChangePassword} className="space-y-4">
-                                {/* Last Used (Current) Password */}
+                                {/* Master Setup Key */}
                                 <div className="space-y-1.5">
                                     <Label
-                                        htmlFor="current-pwd"
+                                        htmlFor="setup-master-key"
                                         className="text-xs font-bold text-slate-700">
-                                        Last Used (Current) Password *
+                                        Master Setup Key *
                                     </Label>
                                     <div className="relative">
                                         <Input
-                                            id="current-pwd"
-                                            type={showCurrentPassword ? "text" : "password"}
-                                            placeholder="Enter your current password"
-                                            value={currentPassword}
-                                            onChange={(e) =>
-                                                setCurrentPassword(e.target.value)
-                                            }
-                                            className="pr-10 rounded-xl"
+                                            id="setup-master-key"
+                                            type={showMasterKey ? "text" : "password"}
+                                            placeholder="Enter your Master Setup Key"
+                                            value={masterKey}
+                                            onChange={(e) => setMasterKey(e.target.value)}
+                                            className="pr-10 rounded-xl text-xs font-mono"
                                             required
                                             autoFocus
                                         />
                                         <button
                                             type="button"
-                                            onClick={() =>
-                                                setShowCurrentPassword(!showCurrentPassword)
-                                            }
+                                            onClick={() => setShowMasterKey(!showMasterKey)}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                            {showCurrentPassword ? (
+                                            {showMasterKey ? (
                                                 <EyeOff className="w-4 h-4" />
                                             ) : (
                                                 <Eye className="w-4 h-4" />
@@ -217,25 +251,23 @@ const Login = () => {
                                 {/* New Password */}
                                 <div className="space-y-1.5">
                                     <Label
-                                        htmlFor="new-pwd"
+                                        htmlFor="setup-new-password"
                                         className="text-xs font-bold text-slate-700">
-                                        New Password *
+                                        Create New Admin Password *
                                     </Label>
                                     <div className="relative">
                                         <Input
-                                            id="new-pwd"
+                                            id="setup-new-password"
                                             type={showNewPassword ? "text" : "password"}
-                                            placeholder="Enter new password (min. 4 chars)"
+                                            placeholder="Choose a strong password (min. 6 chars)"
                                             value={newPassword}
                                             onChange={(e) => setNewPassword(e.target.value)}
-                                            className="pr-10 rounded-xl"
+                                            className="pr-10 rounded-xl text-xs"
                                             required
                                         />
                                         <button
                                             type="button"
-                                            onClick={() =>
-                                                setShowNewPassword(!showNewPassword)
-                                            }
+                                            onClick={() => setShowNewPassword(!showNewPassword)}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                                             {showNewPassword ? (
                                                 <EyeOff className="w-4 h-4" />
@@ -246,22 +278,20 @@ const Login = () => {
                                     </div>
                                 </div>
 
-                                {/* Confirm New Password */}
+                                {/* Confirm Password */}
                                 <div className="space-y-1.5">
                                     <Label
-                                        htmlFor="confirm-pwd"
+                                        htmlFor="setup-confirm-password"
                                         className="text-xs font-bold text-slate-700">
-                                        Confirm New Password *
+                                        Confirm Password *
                                     </Label>
                                     <Input
-                                        id="confirm-pwd"
+                                        id="setup-confirm-password"
                                         type="password"
-                                        placeholder="Re-enter new password"
+                                        placeholder="Re-enter your chosen password"
                                         value={confirmPassword}
-                                        onChange={(e) =>
-                                            setConfirmPassword(e.target.value)
-                                        }
-                                        className="rounded-xl"
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="rounded-xl text-xs"
                                         required
                                     />
                                 </div>
@@ -269,8 +299,189 @@ const Login = () => {
                                 <div className="pt-2 space-y-2">
                                     <Button
                                         type="submit"
-                                        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl py-2.5 font-semibold text-sm shadow-md transition-all">
-                                        Update Password & Sign In
+                                        disabled={isLoading}
+                                        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl py-2.5 font-semibold text-xs sm:text-sm shadow-md transition-all">
+                                        {isLoading ? "Securing Account..." : "Save Password & Launch Portal"}
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => setMode("login")}
+                                        className="w-full text-xs text-slate-500 hover:text-slate-800">
+                                        Already set up? Switch to standard login
+                                    </Button>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* ================= MODE: LOGIN ================= */}
+                        {mode === "login" && (
+                            <form onSubmit={handleLogin} className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <Label
+                                            htmlFor="login-password"
+                                            className="text-xs font-bold text-slate-700">
+                                            Admin Password
+                                        </Label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setMode("reset")}
+                                            className="text-xs text-blue-600 hover:text-blue-800 font-semibold transition-colors">
+                                            Forgot / Reset?
+                                        </button>
+                                    </div>
+
+                                    <div className="relative">
+                                        <Input
+                                            id="login-password"
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="Enter administrator password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            className="pr-10 rounded-xl text-xs"
+                                            autoFocus
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                            {showPassword ? (
+                                                <EyeOff className="w-4 h-4" />
+                                            ) : (
+                                                <Eye className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-xl py-2.5 font-semibold text-sm shadow-md transition-all">
+                                    {isLoading ? "Verifying..." : "Sign In to Admin Portal"}
+                                </Button>
+
+                                <div className="pt-2 text-center space-y-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setMode("reset")}
+                                        className="text-xs text-slate-500 hover:text-blue-700 font-medium transition-colors block mx-auto">
+                                        Locked out? Reset using Master Key
+                                    </button>
+
+                                    {!isInitialized && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setMode("setup")}
+                                            className="text-xs text-orange-600 hover:text-orange-700 font-bold transition-colors block mx-auto">
+                                            Initial setup needed? Click here
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                        )}
+
+                        {/* ================= MODE: RESET ================= */}
+                        {mode === "reset" && (
+                            <form onSubmit={handleEmergencyReset} className="space-y-4">
+                                <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-xl text-xs text-amber-900 space-y-1">
+                                    <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                                        Master Key Recovery
+                                    </div>
+                                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                                        No previous password is required. Enter your secret Master Key to instantly reset and establish a new admin password.
+                                    </p>
+                                </div>
+
+                                {/* Master Key */}
+                                <div className="space-y-1.5">
+                                    <Label
+                                        htmlFor="reset-master-key"
+                                        className="text-xs font-bold text-slate-700">
+                                        Master Verification Key *
+                                    </Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="reset-master-key"
+                                            type={showMasterKey ? "text" : "password"}
+                                            placeholder="Enter your Master Key"
+                                            value={masterKey}
+                                            onChange={(e) => setMasterKey(e.target.value)}
+                                            className="pr-10 rounded-xl text-xs font-mono"
+                                            required
+                                            autoFocus
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowMasterKey(!showMasterKey)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                            {showMasterKey ? (
+                                                <EyeOff className="w-4 h-4" />
+                                            ) : (
+                                                <Eye className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* New Password */}
+                                <div className="space-y-1.5">
+                                    <Label
+                                        htmlFor="reset-new-pwd"
+                                        className="text-xs font-bold text-slate-700">
+                                        New Administrator Password *
+                                    </Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="reset-new-pwd"
+                                            type={showNewPassword ? "text" : "password"}
+                                            placeholder="Enter new password (min. 6 chars)"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            className="pr-10 rounded-xl text-xs"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowNewPassword(!showNewPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                            {showNewPassword ? (
+                                                <EyeOff className="w-4 h-4" />
+                                            ) : (
+                                                <Eye className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Confirm Password */}
+                                <div className="space-y-1.5">
+                                    <Label
+                                        htmlFor="reset-confirm-pwd"
+                                        className="text-xs font-bold text-slate-700">
+                                        Confirm New Password *
+                                    </Label>
+                                    <Input
+                                        id="reset-confirm-pwd"
+                                        type="password"
+                                        placeholder="Confirm new password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="rounded-xl text-xs"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="pt-2 space-y-2">
+                                    <Button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl py-2.5 font-semibold text-xs sm:text-sm shadow-md transition-all">
+                                        {isLoading ? "Updating..." : "Reset Password & Sign In"}
                                     </Button>
 
                                     <Button
@@ -278,7 +489,7 @@ const Login = () => {
                                         variant="outline"
                                         onClick={() => setMode("login")}
                                         className="w-full rounded-xl text-xs text-slate-600">
-                                        Cancel & Back to Sign In
+                                        Back to Sign In
                                     </Button>
                                 </div>
                             </form>

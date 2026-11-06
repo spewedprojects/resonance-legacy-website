@@ -28,7 +28,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
-import { logout, changePassword } from "@/lib/auth";
+import { logout, changePassword, resetPasswordWithMasterKey } from "@/lib/auth";
 import { toast } from "sonner";
 
 interface SidebarProps {
@@ -47,17 +47,18 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
     const [confirmPwd, setConfirmPwd] = useState("");
     const [showCurrent, setShowCurrent] = useState(false);
     const [showNew, setShowNew] = useState(false);
+    const [useMasterKey, setUseMasterKey] = useState(false);
 
     const handleLogout = () => {
         logout();
         navigate("/login");
     };
 
-    const handleUpdatePassword = (e: React.FormEvent) => {
+    const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!currentPwd) {
-            toast.error("Please enter your last used (current) password");
+            toast.error(useMasterKey ? "Please enter your Master Setup Key" : "Please enter your current password");
             return;
         }
 
@@ -66,8 +67,8 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
             return;
         }
 
-        if (newPwd.length < 4) {
-            toast.error("New password must be at least 4 characters long");
+        if (newPwd.length < 6) {
+            toast.error("New password must be at least 6 characters long");
             return;
         }
 
@@ -76,13 +77,19 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
             return;
         }
 
-        const res = changePassword(currentPwd, newPwd);
+        let res;
+        if (useMasterKey) {
+            res = await resetPasswordWithMasterKey(currentPwd.trim(), newPwd);
+        } else {
+            res = await changePassword(currentPwd, newPwd);
+        }
 
         if (res.success) {
             toast.success(res.message);
             setCurrentPwd("");
             setNewPwd("");
             setConfirmPwd("");
+            setUseMasterKey(false);
             setIsPasswordModalOpen(false);
         } else {
             toast.error(res.message);
@@ -199,13 +206,24 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
                     </DialogHeader>
 
                     <form onSubmit={handleUpdatePassword} className="space-y-4 pt-2">
-                        {/* Current (Last Used) Password */}
+                        {/* Current Password or Master Key */}
                         <div className="space-y-1.5">
-                            <Label
-                                htmlFor="sidebar-current-pwd"
-                                className="text-xs font-bold text-slate-700">
-                                Last Used (Current) Password *
-                            </Label>
+                            <div className="flex items-center justify-between">
+                                <Label
+                                    htmlFor="sidebar-current-pwd"
+                                    className="text-xs font-bold text-slate-700">
+                                    {useMasterKey ? "Master Verification Key *" : "Current Password *"}
+                                </Label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setUseMasterKey(!useMasterKey);
+                                        setCurrentPwd("");
+                                    }}
+                                    className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold transition-colors">
+                                    {useMasterKey ? "Use Current Password" : "Forgot? Use Master Key"}
+                                </button>
+                            </div>
                             <div className="relative">
                                 <Input
                                     id="sidebar-current-pwd"
