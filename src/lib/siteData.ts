@@ -1386,6 +1386,21 @@ export const recordVisitorHit = (): VisitorStats => {
             localStorage.setItem(STORAGE_KEYS.ANALYTICS, JSON.stringify(updated));
             notifyDataChange(STORAGE_KEYS.ANALYTICS);
             syncToCloud(STORAGE_KEYS.ANALYTICS, updated);
+
+            // Forward to central analytics API when available
+            fetch("/api/analytics", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ visitorToken }),
+            })
+                .then((r) => (r.ok ? r.json() : null))
+                .then((d) => {
+                    if (d?.stats) {
+                        localStorage.setItem(STORAGE_KEYS.ANALYTICS, JSON.stringify(d.stats));
+                        notifyDataChange(STORAGE_KEYS.ANALYTICS);
+                    }
+                })
+                .catch(() => {});
         }
 
         return updated;
@@ -1398,6 +1413,16 @@ export const useSiteVisitorStats = (): VisitorStats => {
     const [stats, setStats] = useState<VisitorStats>(getVisitorStats);
 
     useEffect(() => {
+        // Attempt to fetch live central analytics
+        fetch("/api/analytics")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data) => {
+                if (data && typeof data.uniqueVisitors === "number") {
+                    setStats(data);
+                    localStorage.setItem(STORAGE_KEYS.ANALYTICS, JSON.stringify(data));
+                }
+            })
+            .catch(() => {});
         const handler = (e: any) => {
             if (!e.detail?.key || e.detail.key === STORAGE_KEYS.ANALYTICS || e.detail.key === "all") {
                 setStats(getVisitorStats());
@@ -1536,6 +1561,12 @@ export const revokeSession = (sessionId: string) => {
     localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
     notifyDataChange(STORAGE_KEYS.SESSIONS);
     syncToCloud(STORAGE_KEYS.SESSIONS, updated);
+
+    fetch("/api/auth/sessions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+    }).catch(() => {});
 };
 
 export const revokeAllOtherSessions = () => {
@@ -1545,12 +1576,33 @@ export const revokeAllOtherSessions = () => {
     localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
     notifyDataChange(STORAGE_KEYS.SESSIONS);
     syncToCloud(STORAGE_KEYS.SESSIONS, updated);
+
+    fetch("/api/auth/sessions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ revokeAllOthers: true }),
+    }).catch(() => {});
 };
 
 export const useSiteSessions = (): DeviceSession[] => {
     const [sessions, setSessions] = useState<DeviceSession[]>(getStoredSessions);
 
     useEffect(() => {
+        const syncSessions = () => {
+            fetch("/api/auth/sessions")
+                .then((r) => (r.ok ? r.json() : null))
+                .then((data) => {
+                    if (data?.sessions && Array.isArray(data.sessions)) {
+                        setSessions(data.sessions);
+                        localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(data.sessions));
+                    }
+                })
+                .catch(() => {});
+        };
+
+        syncSessions();
+        const interval = setInterval(syncSessions, 10000);
+
         const handler = (e: any) => {
             if (!e.detail?.key || e.detail.key === STORAGE_KEYS.SESSIONS || e.detail.key === "all") {
                 setSessions(getStoredSessions());
@@ -1560,6 +1612,7 @@ export const useSiteSessions = (): DeviceSession[] => {
         window.addEventListener("siteDataUpdated", handler);
         window.addEventListener("storage", handler);
         return () => {
+            clearInterval(interval);
             window.removeEventListener("siteDataUpdated", handler);
             window.removeEventListener("storage", handler);
         };
