@@ -382,7 +382,7 @@ const ManageGallery: React.FC = () => {
                                 Album Title *
                             </Label>
                             <Input
-                                id="album-title"
+                                id="album-title" name="title"
                                 placeholder="e.g. National Apprenticeship Conclave 2026"
                                 value={formTitle}
                                 onChange={(e) => setFormTitle(e.target.value)}
@@ -398,7 +398,7 @@ const ManageGallery: React.FC = () => {
                                     Event Date
                                 </Label>
                                 <Input
-                                    id="album-date"
+                                    id="album-date" name="date"
                                     placeholder="e.g. February 2026"
                                     value={formDate}
                                     onChange={(e) => setFormDate(e.target.value)}
@@ -410,7 +410,7 @@ const ManageGallery: React.FC = () => {
                                     Event Location / Venue
                                 </Label>
                                 <Input
-                                    id="album-loc"
+                                    id="album-loc" name="location"
                                     placeholder="e.g. Pune Industrial Hub / Online"
                                     value={formLocation}
                                     onChange={(e) => setFormLocation(e.target.value)}
@@ -425,7 +425,7 @@ const ManageGallery: React.FC = () => {
                                 Event Details & Description *
                             </Label>
                             <Textarea
-                                id="album-desc"
+                                id="album-desc" name="description"
                                 placeholder="Describe what happened at this event, participants, key topics, and highlights..."
                                 value={formDescription}
                                 onChange={(e) => setFormDescription(e.target.value)}
@@ -453,6 +453,8 @@ const ManageGallery: React.FC = () => {
                                         <Upload className="w-3.5 h-3.5" />
                                         {isUploading ? "Uploading..." : "Upload Photos"}
                                         <input
+                                            id="gallery-file-upload"
+                                            name="galleryFiles"
                                             type="file"
                                             multiple
                                             accept="image/*"
@@ -467,6 +469,8 @@ const ManageGallery: React.FC = () => {
                             {/* Add by URL */}
                             <div className="flex gap-2">
                                 <Input
+                                    id="gallery-image-url-input"
+                                    name="imageUrlInput"
                                     placeholder="Or paste an image URL (e.g. https://...)"
                                     value={imageUrlInput}
                                     onChange={(e) => setImageUrlInput(e.target.value)}

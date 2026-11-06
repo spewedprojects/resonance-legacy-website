@@ -78,11 +78,14 @@ const BlogList = () => {
                 <div className="relative w-full sm:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
-                        type="text"
+                        id="search-blog-posts"
+                        name="blogSearch"
+                        type="search"
                         placeholder="Search posts by title, subtitle, or author..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 bg-gray-50 border-gray-200 rounded-lg text-sm"
+                        autoComplete="off"
                     />
                 </div>
                 <div className="text-xs text-gray-500 font-medium">

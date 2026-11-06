@@ -173,7 +173,7 @@ const BlogEditor = () => {
     const renderCustomToolbar = () => (
         <span className="ql-formats flex flex-wrap items-center gap-1 p-2 bg-slate-50 border-b border-slate-200">
             {/* Heading formatting */}
-            <select className="ql-header" defaultValue="">
+            <select id="quill-header-select" name="qlHeader" className="ql-header" defaultValue="" aria-label="Heading formatting">
                 <option value="1">Heading 1 (H1)</option>
                 <option value="2">Heading 2 (H2)</option>
                 <option value="3">Heading 3 (H3)</option>
@@ -386,6 +386,7 @@ const BlogEditor = () => {
                             </Label>
                             <Input
                                 id="tags"
+                                name="tags"
                                 value={tagInput}
                                 onChange={(e) => setTagInput(e.target.value)}
                                 placeholder="Skills, Innovation, Startups"
@@ -468,6 +469,8 @@ const BlogEditor = () => {
                                 <Upload className="w-4 h-4" />
                                 Upload Image from Computer
                                 <input
+                                    id="blog-cover-upload"
+                                    name="coverImageUpload"
                                     type="file"
                                     accept="image/*"
                                     onChange={handleImageUpload}

@@ -189,11 +189,14 @@ const ManageAdvisory: React.FC = () => {
                 <div className="relative w-full sm:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
-                        type="text"
+                        id="search-advisors"
+                        name="advisorySearch"
+                        type="search"
                         placeholder="Search advisors by name or bio..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 bg-gray-50 border-gray-200 rounded-lg text-sm"
+                        autoComplete="off"
                     />
                 </div>
                 <div className="text-xs text-gray-500 font-medium">
@@ -321,6 +324,8 @@ const ManageAdvisory: React.FC = () => {
                                     <Upload className="w-3.5 h-3.5" />
                                     Upload Photo
                                     <input
+                                        id="advisor-photo-upload"
+                                        name="advisorPhoto"
                                         type="file"
                                         accept="image/*"
                                         onChange={handleImageUpload}
@@ -363,10 +368,12 @@ const ManageAdvisory: React.FC = () => {
                             </Label>
                             <Input
                                 id="advisorName"
+                                name="name"
                                 value={formName}
                                 onChange={(e) => setFormName(e.target.value)}
                                 placeholder="e.g. DR. MILIND KAMBLE"
                                 required
+                                autoComplete="name"
                                 className="mt-1"
                             />
                         </div>
@@ -378,6 +385,7 @@ const ManageAdvisory: React.FC = () => {
                             </Label>
                             <Textarea
                                 id="advisorDesc"
+                                name="description"
                                 value={formDesc}
                                 onChange={(e) => setFormDesc(e.target.value)}
                                 placeholder="Brief background, achievements, and advisory expertise..."

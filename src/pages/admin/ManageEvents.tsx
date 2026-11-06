@@ -356,7 +356,9 @@ const ManageEvents: React.FC = () => {
                         <div className="relative flex-1">
                             <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <Input
-                                type="text"
+                                id="portal-url-input"
+                                name="portalUrl"
+                                type="url"
                                 value={portalUrlInput}
                                 onChange={(e) => setPortalUrlInput(e.target.value)}
                                 placeholder="https://events.theresonance.co.in"
@@ -548,7 +550,7 @@ const ManageEvents: React.FC = () => {
                                     Event Title *
                                 </Label>
                                 <Input
-                                    id="ev-title"
+                                    id="ev-title" name="title"
                                     placeholder="e.g. National Apprenticeship Conclave 2026"
                                     value={formTitle}
                                     onChange={(e) => setFormTitle(e.target.value)}
@@ -561,7 +563,7 @@ const ManageEvents: React.FC = () => {
                                     Event Subtitle / Tagline
                                 </Label>
                                 <Input
-                                    id="ev-sub"
+                                    id="ev-sub" name="subtitle"
                                     placeholder="e.g. Empowering 2000+ apprentices"
                                     value={formSubtitle}
                                     onChange={(e) => setFormSubtitle(e.target.value)}
@@ -577,7 +579,7 @@ const ManageEvents: React.FC = () => {
                                     Event Date *
                                 </Label>
                                 <Input
-                                    id="ev-date"
+                                    id="ev-date" name="date"
                                     placeholder="e.g. March 28, 2026"
                                     value={formDate}
                                     onChange={(e) => setFormDate(e.target.value)}
@@ -590,7 +592,7 @@ const ManageEvents: React.FC = () => {
                                     Event Time
                                 </Label>
                                 <Input
-                                    id="ev-time"
+                                    id="ev-time" name="time"
                                     placeholder="e.g. 10:00 AM - 05:00 PM IST"
                                     value={formTime}
                                     onChange={(e) => setFormTime(e.target.value)}
@@ -602,7 +604,7 @@ const ManageEvents: React.FC = () => {
                                     Venue / Location
                                 </Label>
                                 <Input
-                                    id="ev-venue"
+                                    id="ev-venue" name="venue"
                                     placeholder="e.g. Pune Tech Center / Online"
                                     value={formVenue}
                                     onChange={(e) => setFormVenue(e.target.value)}
@@ -618,7 +620,7 @@ const ManageEvents: React.FC = () => {
                                     Category
                                 </Label>
                                 <Input
-                                    id="ev-cat"
+                                    id="ev-cat" name="category"
                                     placeholder="e.g. Workshop, Conclave, Bootcamp"
                                     value={formCategory}
                                     onChange={(e) => setFormCategory(e.target.value)}
@@ -630,7 +632,7 @@ const ManageEvents: React.FC = () => {
                                     Status
                                 </Label>
                                 <select
-                                    id="ev-status"
+                                    id="ev-status" name="status"
                                     value={formStatus}
                                     onChange={(e) =>
                                         setFormStatus(
@@ -655,7 +657,7 @@ const ManageEvents: React.FC = () => {
                                 Event Purpose / Objective *
                             </Label>
                             <Input
-                                id="ev-purpose"
+                                id="ev-purpose" name="purpose"
                                 placeholder="State the core objective or target outcome of this event..."
                                 value={formPurpose}
                                 onChange={(e) => setFormPurpose(e.target.value)}
@@ -690,6 +692,8 @@ const ManageEvents: React.FC = () => {
                                     <Upload className="w-3.5 h-3.5" />
                                     {isUploading ? "Processing..." : "Upload Image"}
                                     <input
+                                        id="event-banner-upload"
+                                        name="bannerUpload"
                                         type="file"
                                         accept="image/*"
                                         onChange={handleBannerUpload}
@@ -699,6 +703,8 @@ const ManageEvents: React.FC = () => {
                                 </label>
                             </div>
                             <Input
+                                id="event-banner-url"
+                                name="bannerImageUrl"
                                 placeholder="Or enter banner image URL (e.g. https://...)"
                                 value={formBannerImage}
                                 onChange={(e) => setFormBannerImage(e.target.value)}
@@ -742,7 +748,7 @@ const ManageEvents: React.FC = () => {
                                     Direct Registration URL (Alternative / Fallback)
                                 </Label>
                                 <Input
-                                    id="ev-reg-url"
+                                    id="ev-reg-url" name="registrationUrl"
                                     placeholder="https://..."
                                     value={formRegistrationUrl}
                                     onChange={(e) => setFormRegistrationUrl(e.target.value)}

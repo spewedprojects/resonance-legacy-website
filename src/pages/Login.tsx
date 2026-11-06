@@ -264,6 +264,7 @@ const Login = () => {
                                     <div className="relative">
                                         <Input
                                             id="setup-master-key"
+                                            name="masterKey"
                                             type={showMasterKey ? "text" : "password"}
                                             placeholder="Enter your Master Setup Key"
                                             value={masterKey}
@@ -271,6 +272,7 @@ const Login = () => {
                                             className="pr-10 rounded-xl text-xs font-mono"
                                             required
                                             autoFocus
+                                            autoComplete="off"
                                             disabled={isLoading}
                                         />
                                         <button
@@ -296,12 +298,14 @@ const Login = () => {
                                     <div className="relative">
                                         <Input
                                             id="setup-new-password"
+                                            name="newPassword"
                                             type={showNewPassword ? "text" : "password"}
                                             placeholder="Choose a strong password (min. 6 chars)"
                                             value={newPassword}
                                             onChange={(e) => setNewPassword(e.target.value)}
                                             className="pr-10 rounded-xl text-xs"
                                             required
+                                            autoComplete="new-password"
                                             disabled={isLoading}
                                         />
                                         <button
@@ -326,12 +330,14 @@ const Login = () => {
                                     </Label>
                                     <Input
                                         id="setup-confirm-password"
+                                        name="confirmPassword"
                                         type="password"
                                         placeholder="Re-enter your chosen password"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         className="rounded-xl text-xs"
                                         required
+                                        autoComplete="new-password"
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -384,6 +390,7 @@ const Login = () => {
                                     <div className="relative">
                                         <Input
                                             id="login-password"
+                                            name="password"
                                             type={showPassword ? "text" : "password"}
                                             placeholder="Enter administrator password"
                                             value={password}
@@ -391,6 +398,7 @@ const Login = () => {
                                             className="pr-10 rounded-xl text-xs"
                                             autoFocus
                                             required
+                                            autoComplete="current-password"
                                             disabled={isLoading}
                                         />
                                         <button
@@ -463,6 +471,7 @@ const Login = () => {
                                     <div className="relative">
                                         <Input
                                             id="reset-master-key"
+                                            name="masterKey"
                                             type={showMasterKey ? "text" : "password"}
                                             placeholder="Enter your Master Key"
                                             value={masterKey}
@@ -470,6 +479,7 @@ const Login = () => {
                                             className="pr-10 rounded-xl text-xs font-mono"
                                             required
                                             autoFocus
+                                            autoComplete="off"
                                             disabled={isLoading}
                                         />
                                         <button
@@ -495,12 +505,14 @@ const Login = () => {
                                     <div className="relative">
                                         <Input
                                             id="reset-new-pwd"
+                                            name="newPassword"
                                             type={showNewPassword ? "text" : "password"}
                                             placeholder="Enter new password (min. 6 chars)"
                                             value={newPassword}
                                             onChange={(e) => setNewPassword(e.target.value)}
                                             className="pr-10 rounded-xl text-xs"
                                             required
+                                            autoComplete="new-password"
                                             disabled={isLoading}
                                         />
                                         <button
@@ -525,12 +537,14 @@ const Login = () => {
                                     </Label>
                                     <Input
                                         id="reset-confirm-pwd"
+                                        name="confirmPassword"
                                         type="password"
                                         placeholder="Confirm new password"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         className="rounded-xl text-xs"
                                         required
+                                        autoComplete="new-password"
                                         disabled={isLoading}
                                     />
                                 </div>

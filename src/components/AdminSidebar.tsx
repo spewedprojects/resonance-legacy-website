@@ -227,6 +227,7 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
                             <div className="relative">
                                 <Input
                                     id="sidebar-current-pwd"
+                                    name="currentPassword"
                                     type={showCurrent ? "text" : "password"}
                                     placeholder="Enter your current password"
                                     value={currentPwd}
@@ -234,6 +235,7 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
                                     className="pr-10 rounded-xl"
                                     required
                                     autoFocus
+                                    autoComplete="current-password"
                                 />
                                 <button
                                     type="button"
@@ -258,12 +260,14 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
                             <div className="relative">
                                 <Input
                                     id="sidebar-new-pwd"
+                                    name="newPassword"
                                     type={showNew ? "text" : "password"}
                                     placeholder="Enter new password (min. 4 characters)"
                                     value={newPwd}
                                     onChange={(e) => setNewPwd(e.target.value)}
                                     className="pr-10 rounded-xl"
                                     required
+                                    autoComplete="new-password"
                                 />
                                 <button
                                     type="button"
@@ -287,12 +291,14 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
                             </Label>
                             <Input
                                 id="sidebar-confirm-pwd"
+                                name="confirmPassword"
                                 type="password"
                                 placeholder="Re-enter new password"
                                 value={confirmPwd}
                                 onChange={(e) => setConfirmPwd(e.target.value)}
                                 className="rounded-xl"
                                 required
+                                autoComplete="new-password"
                             />
                         </div>
 

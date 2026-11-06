@@ -142,11 +142,14 @@ const Enquiries = () => {
                 <div className="relative w-full md:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
-                        type="text"
+                        id="search-enquiries-input"
+                        name="enquirySearch"
+                        type="search"
                         placeholder="Search by name, email, phone, or message..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 bg-gray-50 border-gray-200 rounded-lg text-sm"
+                        autoComplete="off"
                     />
                 </div>
 

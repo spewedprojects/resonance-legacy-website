@@ -288,7 +288,7 @@ const ManagePrograms: React.FC = () => {
                                     Full Program Title *
                                 </Label>
                                 <Input
-                                    id="progTitle"
+                                    id="progTitle" name="title"
                                     value={formTitle}
                                     onChange={(e) => setFormTitle(e.target.value)}
                                     placeholder="e.g. National Apprenticeship Training Scheme"
@@ -302,7 +302,7 @@ const ManagePrograms: React.FC = () => {
                                     Code / Acronym *
                                 </Label>
                                 <Input
-                                    id="progCode"
+                                    id="progCode" name="code"
                                     value={formCode}
                                     onChange={(e) => setFormCode(e.target.value)}
                                     placeholder="e.g. NATS"
@@ -318,7 +318,7 @@ const ManagePrograms: React.FC = () => {
                                 Description (revealed when card is clicked) *
                             </Label>
                             <Textarea
-                                id="progDesc"
+                                id="progDesc" name="description"
                                 value={formDescription}
                                 onChange={(e) => setFormDescription(e.target.value)}
                                 placeholder="Describe the program's objectives, benefits, and target audience..."

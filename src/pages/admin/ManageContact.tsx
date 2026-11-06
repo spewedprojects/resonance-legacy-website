@@ -123,6 +123,8 @@ const ManageContact: React.FC = () => {
                         <Upload className="w-4 h-4" />
                         Import Backup
                         <input
+                            id="import-backup-file"
+                            name="importBackupFile"
                             type="file"
                             accept=".json"
                             onChange={handleImportBackup}
@@ -155,6 +157,7 @@ const ManageContact: React.FC = () => {
                                     </Label>
                                     <Input
                                         id="companyName"
+                                        name="companyName"
                                         value={contact.companyName}
                                         onChange={(e) => handleChange("companyName", e.target.value)}
                                         className="mt-1"
@@ -170,7 +173,7 @@ const ManageContact: React.FC = () => {
                                             Primary Phone Number
                                         </Label>
                                         <Input
-                                            id="phone"
+                                            id="phone" name="phone" type="tel" autoComplete="tel"
                                             value={contact.phone}
                                             onChange={(e) => handleChange("phone", e.target.value)}
                                             className="mt-1"
@@ -185,7 +188,7 @@ const ManageContact: React.FC = () => {
                                             Location / City
                                         </Label>
                                         <Input
-                                            id="address"
+                                            id="address" name="address" autoComplete="street-address"
                                             value={contact.address}
                                             onChange={(e) => handleChange("address", e.target.value)}
                                             className="mt-1"
@@ -202,7 +205,7 @@ const ManageContact: React.FC = () => {
                                             Primary / Inquiries Email
                                         </Label>
                                         <Input
-                                            id="email"
+                                            id="email" name="email" autoComplete="email"
                                             type="email"
                                             value={contact.email}
                                             onChange={(e) => handleChange("email", e.target.value)}
@@ -218,7 +221,7 @@ const ManageContact: React.FC = () => {
                                             Support Email
                                         </Label>
                                         <Input
-                                            id="supportEmail"
+                                            id="supportEmail" name="supportEmail" autoComplete="email"
                                             type="email"
                                             value={contact.supportEmail}
                                             onChange={(e) => handleChange("supportEmail", e.target.value)}
@@ -236,7 +239,7 @@ const ManageContact: React.FC = () => {
                                             Office Hours
                                         </Label>
                                         <Input
-                                            id="officeHours"
+                                            id="officeHours" name="officeHours"
                                             value={contact.officeHours}
                                             onChange={(e) => handleChange("officeHours", e.target.value)}
                                             className="mt-1"
@@ -251,7 +254,7 @@ const ManageContact: React.FC = () => {
                                             Response Promise
                                         </Label>
                                         <Input
-                                            id="responseSlogan"
+                                            id="responseSlogan" name="responseSlogan"
                                             value={contact.responseSlogan}
                                             onChange={(e) => handleChange("responseSlogan", e.target.value)}
                                             className="mt-1"

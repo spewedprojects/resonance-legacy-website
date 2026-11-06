@@ -255,6 +255,8 @@ const ManageTeam: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-3">
                     <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 transition-colors">
                         <input
+                            id="show-team-on-home"
+                            name="showTeamOnHome"
                             type="checkbox"
                             checked={settings.showTeamOnHome}
                             onChange={(e) => updatePlacement("showTeamOnHome", e.target.checked)}
@@ -264,6 +266,8 @@ const ManageTeam: React.FC = () => {
                     </label>
                     <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 transition-colors">
                         <input
+                            id="show-team-on-about"
+                            name="showTeamOnAbout"
                             type="checkbox"
                             checked={settings.showTeamOnAbout}
                             onChange={(e) => updatePlacement("showTeamOnAbout", e.target.checked)}
@@ -279,11 +283,14 @@ const ManageTeam: React.FC = () => {
                 <div className="relative w-full sm:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
-                        type="text"
+                        id="search-team-members"
+                        name="searchQuery"
+                        type="search"
                         placeholder="Search team members..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 bg-gray-50 border-gray-200 rounded-lg text-sm"
+                        autoComplete="off"
                     />
                 </div>
                 <div className="text-xs text-gray-500 font-medium">
@@ -566,6 +573,8 @@ const ManageTeam: React.FC = () => {
                                     <Upload className="w-3.5 h-3.5" />
                                     Upload Photo
                                     <input
+                                        id="team-avatar-file-upload"
+                                        name="avatarFile"
                                         type="file"
                                         accept="image/*"
                                         onChange={handleImageUpload}
@@ -615,10 +624,12 @@ const ManageTeam: React.FC = () => {
                             </Label>
                             <Input
                                 id="memberName"
+                                name="name"
                                 value={formName}
                                 onChange={(e) => setFormName(e.target.value)}
                                 placeholder="e.g. John Doe"
                                 required
+                                autoComplete="name"
                                 className="mt-1"
                             />
                         </div>
@@ -630,10 +641,12 @@ const ManageTeam: React.FC = () => {
                             </Label>
                             <Input
                                 id="memberPosition"
+                                name="position"
                                 value={formPosition}
                                 onChange={(e) => setFormPosition(e.target.value)}
                                 placeholder="e.g. Manager - Operations"
                                 required
+                                autoComplete="organization-title"
                                 className="mt-1"
                             />
                         </div>
@@ -646,9 +659,12 @@ const ManageTeam: React.FC = () => {
                                 </Label>
                                 <Input
                                     id="memberContact"
+                                    name="contact"
+                                    type="tel"
                                     value={formContact}
                                     onChange={(e) => setFormContact(e.target.value)}
                                     placeholder="e.g. 9850012345"
+                                    autoComplete="tel"
                                     className="mt-1"
                                 />
                             </div>
@@ -659,10 +675,12 @@ const ManageTeam: React.FC = () => {
                                 </Label>
                                 <Input
                                     id="memberEmail"
+                                    name="email"
                                     type="email"
                                     value={formEmail}
                                     onChange={(e) => setFormEmail(e.target.value)}
                                     placeholder="e.g. name@theresonance.co.in"
+                                    autoComplete="email"
                                     className="mt-1"
                                 />
                             </div>
@@ -680,6 +698,7 @@ const ManageTeam: React.FC = () => {
                             </div>
                             <input
                                 id="form-is-former"
+                                name="isFormer"
                                 type="checkbox"
                                 checked={formIsFormer}
                                 onChange={(e) => setFormIsFormer(e.target.checked)}

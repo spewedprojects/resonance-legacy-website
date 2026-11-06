@@ -303,7 +303,7 @@ const ManageServices: React.FC = () => {
                                 Service Title *
                             </Label>
                             <Input
-                                id="service-title"
+                                id="service-title" name="title"
                                 placeholder="e.g. Skilled Workforce Sourcing & Onboarding"
                                 value={formTitle}
                                 onChange={(e) => setFormTitle(e.target.value)}
@@ -318,7 +318,7 @@ const ManageServices: React.FC = () => {
                                 Full Service Description * (Shown in Dialog View)
                             </Label>
                             <Textarea
-                                id="service-desc"
+                                id="service-desc" name="description"
                                 placeholder="Describe what the service provides, who it helps, and key outcomes..."
                                 value={formDescription}
                                 onChange={(e) => setFormDescription(e.target.value)}
