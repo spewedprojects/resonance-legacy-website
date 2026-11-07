@@ -103,10 +103,33 @@ export interface SiteSettings {
 
 export interface EventPartner {
     id: string;
-    name: string;
-    category: string;
-    logo: string;
+    name?: string;
+    category?: string;
+    logo?: string;
     websiteUrl?: string;
+}
+
+export interface EventPartnerSection {
+    id: string;
+    title: string;
+    subtitle?: string;
+    gridColumns?: 2 | 3 | 4 | 5;
+    partners: EventPartner[];
+}
+
+export interface EventPerson {
+    id: string;
+    name?: string;
+    company?: string;
+    designation?: string;
+    photo?: string;
+}
+
+export interface EventPeopleSection {
+    id: string;
+    title: string;
+    subtitle?: string;
+    members: EventPerson[];
 }
 
 export interface EventAgendaItem {
@@ -121,14 +144,14 @@ export interface ResonanceEvent {
     id: string;
     title: string;
     subtitle?: string;
-    purpose: string;
+    purpose?: string;
     description: string;
     bannerImage: string;
     date: string;
     startTime?: string;
     endTime?: string;
     time?: string;
-    venue: string;
+    venue?: string;
     category?: string;
     status: "upcoming" | "ongoing" | "completed";
     registrationSnippet?: string;
@@ -136,6 +159,8 @@ export interface ResonanceEvent {
     buttonStyle?: "gradient" | "navy" | "glow" | "classic";
     partnerGridColumns?: 2 | 3 | 4 | 5;
     partners?: EventPartner[];
+    partnerSections?: EventPartnerSection[];
+    peopleSections?: EventPeopleSection[];
     agenda?: EventAgendaItem[];
 }
 
@@ -566,6 +591,96 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
         category: "Conclave",
         status: "upcoming",
         partnerGridColumns: 4,
+        partnerSections: [
+            {
+                id: "ps-1",
+                title: "Title & Industry Partners",
+                subtitle: "Leading industrial champions powering nationwide skill development",
+                gridColumns: 2,
+                partners: [
+                    {
+                        id: "p-1",
+                        name: "Tata Motors",
+                        category: "Automotive Industry Partner",
+                        logo: "/images/clients/1.svg",
+                        websiteUrl: "https://www.tatamotors.com",
+                    },
+                    {
+                        id: "p-2",
+                        name: "DICCI",
+                        category: "Industry Chamber Partner",
+                        logo: "/images/govlogo/1.svg",
+                        websiteUrl: "https://dicci.in",
+                    },
+                ],
+            },
+            {
+                id: "ps-2",
+                title: "Ecosystem & Knowledge Sponsors",
+                subtitle: "Academic and government apex bodies guiding curriculum standards",
+                gridColumns: 2,
+                partners: [
+                    {
+                        id: "p-3",
+                        name: "Skill India / NSDC",
+                        category: "Skill Development Partner",
+                        logo: "/images/govlogo/2.svg",
+                        websiteUrl: "https://www.skillindia.gov.in",
+                    },
+                    {
+                        id: "p-4",
+                        name: "Savitribai Phule Pune University",
+                        category: "Academic Knowledge Partner",
+                        logo: "/images/clients/2.svg",
+                        websiteUrl: "http://www.unipune.ac.in",
+                    },
+                ],
+            },
+        ],
+        peopleSections: [
+            {
+                id: "peop-1",
+                title: "Distinguished Keynote Speakers",
+                subtitle: "Visionary industry pioneers and institutional leaders",
+                members: [
+                    {
+                        id: "spk-1",
+                        name: "Dr. Milind Kamble",
+                        company: "DICCI Apex Chamber",
+                        designation: "Founder Chairman & Padmashri Awardee",
+                        photo: "/images/advisers/7.svg",
+                    },
+                    {
+                        id: "spk-2",
+                        name: "Atul Kulkarni",
+                        company: "Global Trade & Infrastructure Advisory",
+                        designation: "Techno-Managerial Strategist",
+                        photo: "/images/advisers/3.svg",
+                    },
+                ],
+            },
+            {
+                id: "peop-2",
+                title: "Industry Delegates & Panelists",
+                subtitle: "Senior corporate HR directors and technical workforce deans",
+                members: [
+                    {
+                        id: "del-1",
+                        name: "Rajesh Sharma",
+                        company: "Tata Motors Manufacturing Division",
+                        designation: "Head - Talent Acquisition & Apprenticeships",
+                        photo: "/images/advisers/1.svg",
+                    },
+                    {
+                        id: "del-2",
+                        name: "Priya Nair",
+                        company: "National Skill Development Corporation",
+                        designation: "Director - Academic Alliances",
+                        photo: "/images/advisers/4.svg",
+                    },
+                ],
+            },
+        ],
         partners: [
             {
                 id: "p-1",
@@ -660,6 +775,58 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
         category: "Bootcamp",
         status: "upcoming",
         partnerGridColumns: 3,
+        partnerSections: [
+            {
+                id: "ps-201",
+                title: "Venture & Incubation Sponsors",
+                subtitle: "Venture funds and government startup missions fostering student innovations",
+                gridColumns: 3,
+                partners: [
+                    {
+                        id: "p-201",
+                        name: "Startup India Hub",
+                        category: "Incubation Partner",
+                        logo: "/images/govlogo/3.svg",
+                        websiteUrl: "https://www.startupindia.gov.in",
+                    },
+                    {
+                        id: "p-202",
+                        name: "Venture Catalyst Fund",
+                        category: "Investment Partner",
+                        logo: "/images/clients/3.svg",
+                    },
+                    {
+                        id: "p-203",
+                        name: "Engineering Colleges Consortium",
+                        category: "Academic Ecosystem Partner",
+                        logo: "/images/clients/4.svg",
+                    },
+                ],
+            },
+        ],
+        peopleSections: [
+            {
+                id: "peop-201",
+                title: "Jury Panel & Startup Mentors",
+                subtitle: "Seasoned founders and venture partners evaluating collegiate ventures",
+                members: [
+                    {
+                        id: "jur-1",
+                        name: "Arun Deshmukh",
+                        company: "Early Stage Angels Network",
+                        designation: "Managing Partner",
+                        photo: "/images/advisers/2.svg",
+                    },
+                    {
+                        id: "jur-2",
+                        name: "Ananya Roy",
+                        company: "Catalyst Innovation Labs",
+                        designation: "Chief Incubation Officer",
+                        photo: "/images/advisers/5.svg",
+                    },
+                ],
+            },
+        ],
         partners: [
             {
                 id: "p-201",

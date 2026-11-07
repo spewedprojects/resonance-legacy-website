@@ -10,12 +10,11 @@ import {
     Share2,
     Target,
     Users,
-    Sparkles,
     ExternalLink,
-    CheckCircle2,
     CalendarCheck,
     Building2,
     Briefcase,
+    Sparkles,
 } from "lucide-react";
 import {
     useSiteEvents,
@@ -24,6 +23,7 @@ import {
     formatEventDisplayDate,
     formatEventDisplayTime,
     ResonanceEvent,
+    EventPartnerSection,
 } from "@/lib/siteData";
 import EventRegistrationWidget from "@/components/EventRegistrationWidget";
 import { Button } from "@/components/ui/button";
@@ -101,6 +101,23 @@ const EventDetail: React.FC = () => {
         }
     };
 
+    // Normalize partner sections: use event.partnerSections if present, else fallback to event.partners
+    const partnerSectionsToRender: EventPartnerSection[] =
+        event.partnerSections && event.partnerSections.length > 0
+            ? event.partnerSections
+            : event.partners && event.partners.length > 0
+            ? [
+                  {
+                      id: "default-partners",
+                      title: "Partners & Collaborators",
+                      subtitle:
+                          "Distinguished organizations, industry chambers, and institutions joining hands to power this program.",
+                      gridColumns: event.partnerGridColumns || 4,
+                      partners: event.partners,
+                  },
+              ]
+            : [];
+
     return (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-between">
             <Navbar />
@@ -129,96 +146,97 @@ const EventDetail: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Hero Banner Section */}
-                <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-10">
-                    <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200/80 bg-slate-900 text-white min-h-[380px] sm:min-h-[440px] flex flex-col justify-end">
-                        {/* Reused Banner Background */}
-                        <img
-                            src={event.bannerImage || "/media/placeholder.png"}
-                            alt={event.title}
-                            className="absolute inset-0 w-full h-full object-cover opacity-35"
-                            onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src =
-                                    "/media/placeholder.png";
-                            }}
-                        />
-
-                        {/* High-contrast gradient overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent" />
-
-                        {/* Hero Content */}
-                        <div className="relative p-6 sm:p-10 md:p-12 space-y-4">
-                            {/* Badges */}
-                            <div className="flex flex-wrap items-center gap-2.5">
-                                {event.category && (
-                                    <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-500/80 text-white backdrop-blur-sm shadow-sm">
-                                        {event.category}
-                                    </span>
-                                )}
-                                <span
-                                    className={`px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-white shadow-sm ${
-                                        past
-                                            ? "bg-slate-600"
-                                            : event.status === "ongoing"
-                                            ? "bg-orange-500 animate-pulse"
-                                            : "bg-emerald-600"
-                                    }`}>
-                                    {past ? "Completed / Concluded" : event.status}
+                {/* Event Hero Header (Completely unobstructed, separate from banner) */}
+                <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-8">
+                    <div className="bg-white rounded-3xl p-6 sm:p-10 md:p-12 border border-slate-200/80 shadow-sm space-y-6">
+                        {/* Badges */}
+                        <div className="flex flex-wrap items-center gap-2.5">
+                            {event.category && (
+                                <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200/60 shadow-sm">
+                                    {event.category}
                                 </span>
-                            </div>
+                            )}
+                            <span
+                                className={`px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-white shadow-sm ${
+                                    past
+                                        ? "bg-slate-600"
+                                        : event.status === "ongoing"
+                                        ? "bg-orange-500 animate-pulse"
+                                        : "bg-emerald-600"
+                                }`}>
+                                {past ? "Completed / Concluded" : event.status}
+                            </span>
+                        </div>
 
-                            {/* Title & Subtitle */}
-                            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white leading-tight tracking-tight max-w-4xl">
+                        {/* Title & Subtitle */}
+                        <div className="space-y-3">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-blue-950 leading-tight tracking-tight">
                                 {event.title}
                             </h1>
-
                             {event.subtitle && (
-                                <p className="text-sm sm:text-base md:text-lg font-medium text-blue-200 max-w-3xl leading-relaxed">
+                                <p className="text-base sm:text-lg md:text-xl font-medium text-slate-600 leading-relaxed max-w-4xl">
                                     {event.subtitle}
                                 </p>
                             )}
+                        </div>
 
-                            {/* Meta Quick Bar */}
-                            <div className="pt-2 flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-slate-200">
-                                {displayDate && (
-                                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/15">
-                                        <Calendar className="w-4 h-4 text-orange-400 shrink-0" />
-                                        <span className="font-semibold text-white">{displayDate}</span>
-                                    </div>
-                                )}
-                                {displayTime && (
-                                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/15">
-                                        <Clock className="w-4 h-4 text-blue-300 shrink-0" />
-                                        <span className="font-medium text-slate-100">{displayTime}</span>
-                                    </div>
-                                )}
-                                {event.venue && (
-                                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/15">
-                                        <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
-                                        <span className="font-medium text-slate-100">{event.venue}</span>
-                                    </div>
-                                )}
-                            </div>
+                        {/* Meta Quick Bar */}
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-700 pt-1">
+                            {displayDate && (
+                                <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200/80 font-semibold text-blue-950 shadow-xs">
+                                    <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
+                                    <span>{displayDate}</span>
+                                </div>
+                            )}
+                            {displayTime && (
+                                <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200/80 font-medium text-slate-700 shadow-xs">
+                                    <Clock className="w-4 h-4 text-indigo-600 shrink-0" />
+                                    <span>{displayTime}</span>
+                                </div>
+                            )}
+                            {event.venue && (
+                                <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200/80 font-medium text-slate-700 shadow-xs">
+                                    <MapPin className="w-4 h-4 text-orange-500 shrink-0" />
+                                    <span>{event.venue}</span>
+                                </div>
+                            )}
+                        </div>
 
-                            {/* Hero Registration Button */}
-                            <div className="pt-4 flex flex-wrap items-center gap-4">
-                                <EventRegistrationWidget
-                                    snippet={event.registrationSnippet}
-                                    fallbackUrl={event.registrationUrl}
-                                    eventTitle={event.title}
-                                    buttonStyle={event.buttonStyle || "gradient"}
-                                    isPast={past}
-                                    className="scale-105 origin-left"
-                                />
-                                {past && (
-                                    <span className="text-xs text-slate-300 font-medium">
-                                        This event took place on {displayDate}. Registrations are now closed.
-                                    </span>
-                                )}
-                            </div>
+                        {/* Hero Registration Button */}
+                        <div className="pt-2 flex flex-wrap items-center gap-4">
+                            <EventRegistrationWidget
+                                snippet={event.registrationSnippet}
+                                fallbackUrl={event.registrationUrl}
+                                eventTitle={event.title}
+                                buttonStyle={event.buttonStyle || "gradient"}
+                                isPast={past}
+                                className="scale-105 origin-left"
+                            />
+                            {past && (
+                                <span className="text-xs text-slate-500 font-medium">
+                                    This event took place on {displayDate}. Registrations are now closed.
+                                </span>
+                            )}
                         </div>
                     </div>
                 </section>
+
+                {/* Event Banner Showcase (Clean, 100% visible, not covered with any text) */}
+                {event.bannerImage && (
+                    <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-12">
+                        <div className="rounded-3xl overflow-hidden border border-slate-200/90 shadow-xl bg-slate-900/5">
+                            <img
+                                src={event.bannerImage}
+                                alt={event.title}
+                                className="w-full h-auto max-h-[560px] object-cover sm:object-contain mx-auto block"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src =
+                                        "/media/placeholder.png";
+                                }}
+                            />
+                        </div>
+                    </section>
+                )}
 
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12">
                     {/* Purpose Section */}
@@ -244,98 +262,181 @@ const EventDetail: React.FC = () => {
                     )}
 
                     {/* Full Description Section */}
-                    <section className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm space-y-4">
-                        <div className="flex items-center gap-2 text-xs font-bold text-blue-700 uppercase tracking-wider">
-                            <Briefcase className="w-4 h-4" />
-                            <span>Detailed Overview</span>
-                        </div>
-                        <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
-                            About This Initiative
-                        </h2>
-                        <div className="text-sm sm:text-base text-slate-600 leading-relaxed whitespace-pre-line space-y-4 pt-1">
-                            {event.description}
-                        </div>
-                    </section>
-
-                    {/* Partners & Collaborators Section */}
-                    {event.partners && event.partners.length > 0 && (
-                        <section className="space-y-6">
-                            <div className="space-y-1 text-center sm:text-left">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full uppercase tracking-wider">
-                                    <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                                    <span>Ecosystem Partners</span>
-                                </div>
-                                <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
-                                    Partners & Collaborators
-                                </h2>
-                                <p className="text-xs sm:text-sm text-slate-500 max-w-2xl">
-                                    Distinguished organizations, industry chambers, and institutions joining hands to power this program.
-                                </p>
+                    {event.description && (
+                        <section className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm space-y-4">
+                            <div className="flex items-center gap-2 text-xs font-bold text-blue-700 uppercase tracking-wider">
+                                <Briefcase className="w-4 h-4" />
+                                <span>Detailed Overview</span>
                             </div>
-
-                            <div
-                                className={`grid ${getPartnerGridClass(
-                                    event.partnerGridColumns,
-                                )} gap-5 sm:gap-6`}>
-                                {event.partners.map((partner) => {
-                                    const cardContent = (
-                                        <div className="h-full bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center text-center justify-between group">
-                                            {/* Kind of Partner Pill */}
-                                            <span className="w-full text-center text-[11px] font-bold text-blue-800 bg-blue-50 group-hover:bg-blue-100 px-3 py-1 rounded-full uppercase tracking-wider transition-colors mb-4 line-clamp-1">
-                                                {partner.category || "Partner"}
-                                            </span>
-
-                                            {/* Logo Container (supports SVG vector and PNG/JPEG crisply) */}
-                                            <div className="w-full h-24 sm:h-28 flex items-center justify-center p-3 mb-3 bg-slate-50/60 rounded-xl border border-slate-100">
-                                                {partner.logo ? (
-                                                    <img
-                                                        src={partner.logo}
-                                                        alt={partner.name}
-                                                        className="max-h-full max-w-full object-contain filter group-hover:scale-105 transition-transform duration-300"
-                                                        loading="lazy"
-                                                        onError={(e) => {
-                                                            (e.currentTarget as HTMLImageElement).src =
-                                                                "/media/resonanceLogoNav.png";
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <Building2 className="w-10 h-10 text-slate-300" />
-                                                )}
-                                            </div>
-
-                                            {/* Partner Name */}
-                                            <div className="w-full pt-1">
-                                                <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-900 transition-colors line-clamp-2">
-                                                    {partner.name}
-                                                </h3>
-                                                {partner.websiteUrl && (
-                                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        Visit Website <ExternalLink className="w-3 h-3" />
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-
-                                    return partner.websiteUrl ? (
-                                        <a
-                                            key={partner.id}
-                                            href={partner.websiteUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="block h-full"
-                                            title={`Visit ${partner.name}`}>
-                                            {cardContent}
-                                        </a>
-                                    ) : (
-                                        <div key={partner.id} className="h-full">
-                                            {cardContent}
-                                        </div>
-                                    );
-                                })}
+                            <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
+                                About This Initiative
+                            </h2>
+                            <div className="text-sm sm:text-base text-slate-600 leading-relaxed whitespace-pre-line space-y-4 pt-1">
+                                {event.description}
                             </div>
                         </section>
                     )}
+
+                    {/* People Sections (Speakers, Delegates, Guests, Panelists, etc.) */}
+                    {event.peopleSections &&
+                        event.peopleSections.map((section) => {
+                            if (!section.members || section.members.length === 0) return null;
+
+                            return (
+                                <section key={section.id} className="space-y-6">
+                                    <div className="space-y-1 text-center sm:text-left">
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full uppercase tracking-wider">
+                                            <Users className="w-3.5 h-3.5 text-blue-600" />
+                                            <span>{section.title || "Featured Individuals"}</span>
+                                        </div>
+                                        <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
+                                            {section.title}
+                                        </h2>
+                                        {section.subtitle && (
+                                            <p className="text-xs sm:text-sm text-slate-500 max-w-2xl">
+                                                {section.subtitle}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                        {section.members.map((person) => (
+                                            <div
+                                                key={person.id}
+                                                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md border border-slate-200/80 text-center flex flex-col items-center transition-all group">
+                                                {/* Consistent Round Photo Frame */}
+                                                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full mb-4 overflow-hidden bg-slate-100 flex items-center justify-center border-4 border-blue-100/90 shadow-md ring-2 ring-blue-50/80 group-hover:scale-105 group-hover:border-blue-300 transition-all duration-300 shrink-0">
+                                                    {person.photo ? (
+                                                        <img
+                                                            src={person.photo}
+                                                            alt={person.name || "Individual"}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                (e.currentTarget as HTMLImageElement).src =
+                                                                    "/media/resonanceLogoNav.png";
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-blue-50 flex items-center justify-center">
+                                                            <Users className="w-10 h-10 text-blue-400" />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Person Name (if present) */}
+                                                {person.name && (
+                                                    <h4 className="text-base font-bold text-blue-950 mb-1 group-hover:text-blue-800 transition-colors">
+                                                        {person.name}
+                                                    </h4>
+                                                )}
+
+                                                {/* Designation (if present) */}
+                                                {person.designation && (
+                                                    <p className="text-xs font-semibold text-orange-600 mb-1.5 leading-tight">
+                                                        {person.designation}
+                                                    </p>
+                                                )}
+
+                                                {/* Company (if present) */}
+                                                {person.company && (
+                                                    <p className="text-xs font-medium text-slate-500 leading-tight flex items-center justify-center gap-1 mt-auto">
+                                                        <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                                                        <span>{person.company}</span>
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            );
+                        })}
+
+                    {/* Partners & Sponsors Sections */}
+                    {partnerSectionsToRender.map((section) => {
+                        if (!section.partners || section.partners.length === 0) return null;
+
+                        return (
+                            <section key={section.id} className="space-y-6">
+                                <div className="space-y-1 text-center sm:text-left">
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full uppercase tracking-wider">
+                                        <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                                        <span>{section.title || "Partners & Sponsors"}</span>
+                                    </div>
+                                    <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
+                                        {section.title}
+                                    </h2>
+                                    {section.subtitle && (
+                                        <p className="text-xs sm:text-sm text-slate-500 max-w-2xl">
+                                            {section.subtitle}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div
+                                    className={`grid ${getPartnerGridClass(
+                                        section.gridColumns,
+                                    )} gap-5 sm:gap-6`}>
+                                    {section.partners.map((partner) => {
+                                        const cardContent = (
+                                            <div className="h-full bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center text-center justify-between group">
+                                                {/* Kind of Partner Pill (if present) */}
+                                                {partner.category ? (
+                                                    <span className="w-full text-center text-[11px] font-bold text-blue-800 bg-blue-50 group-hover:bg-blue-100 px-3 py-1 rounded-full uppercase tracking-wider transition-colors mb-4 line-clamp-1">
+                                                        {partner.category}
+                                                    </span>
+                                                ) : (
+                                                    <div className="h-4 mb-2" />
+                                                )}
+
+                                                {/* Partner Logo/Icon Only (No partner name text, as requested) */}
+                                                <div className="w-full h-24 sm:h-28 flex items-center justify-center p-3 mb-2 bg-slate-50/60 rounded-xl border border-slate-100">
+                                                    {partner.logo ? (
+                                                        <img
+                                                            src={partner.logo}
+                                                            alt={partner.category || "Partner Logo"}
+                                                            className="max-h-full max-w-full object-contain filter group-hover:scale-105 transition-transform duration-300"
+                                                            loading="lazy"
+                                                            onError={(e) => {
+                                                                (e.currentTarget as HTMLImageElement).src =
+                                                                    "/media/resonanceLogoNav.png";
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <Building2 className="w-10 h-10 text-slate-300" />
+                                                    )}
+                                                </div>
+
+                                                {/* Optional click-through link hint */}
+                                                {partner.websiteUrl ? (
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Visit Official Website <ExternalLink className="w-3 h-3" />
+                                                    </span>
+                                                ) : (
+                                                    <div className="h-2" />
+                                                )}
+                                            </div>
+                                        );
+
+                                        return partner.websiteUrl ? (
+                                            <a
+                                                key={partner.id}
+                                                href={partner.websiteUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="block h-full"
+                                                title={partner.category || "Visit Partner"}>
+                                                {cardContent}
+                                            </a>
+                                        ) : (
+                                            <div key={partner.id} className="h-full">
+                                                {cardContent}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </section>
+                        );
+                    })}
 
                     {/* Timeline Agenda Section */}
                     {event.agenda && event.agenda.length > 0 && (
@@ -365,10 +466,12 @@ const EventDetail: React.FC = () => {
                                         <div className="bg-slate-50/70 group-hover:bg-blue-50/50 rounded-2xl p-5 border border-slate-200/80 transition-colors space-y-2">
                                             {/* Time Badge */}
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900">
-                                                    <Clock className="w-3 h-3 text-blue-600" />
-                                                    {item.time}
-                                                </span>
+                                                {item.time && (
+                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900">
+                                                        <Clock className="w-3 h-3 text-blue-600" />
+                                                        {item.time}
+                                                    </span>
+                                                )}
                                                 {item.speaker && (
                                                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
                                                         <Users className="w-3 h-3 text-emerald-600" />
@@ -378,9 +481,11 @@ const EventDetail: React.FC = () => {
                                             </div>
 
                                             {/* Title */}
-                                            <h3 className="text-base sm:text-lg font-bold text-blue-950 leading-snug">
-                                                {item.title}
-                                            </h3>
+                                            {item.title && (
+                                                <h3 className="text-base sm:text-lg font-bold text-blue-950 leading-snug">
+                                                    {item.title}
+                                                </h3>
+                                            )}
 
                                             {/* Description */}
                                             {item.description && (

@@ -9,6 +9,9 @@ import {
     ResonanceEvent,
     EventsConfig,
     EventPartner,
+    EventPartnerSection,
+    EventPerson,
+    EventPeopleSection,
     EventAgendaItem,
     processImageFile,
     isEventPast,
@@ -49,6 +52,7 @@ import {
     Building2,
     CalendarCheck,
     Users,
+    UserCheck,
 } from "lucide-react";
 import EventRegistrationWidget, { WidgetButtonStyle } from "@/components/EventRegistrationWidget";
 import { toast } from "sonner";
@@ -97,8 +101,10 @@ const ManageEvents: React.FC = () => {
     const [formSnippet, setFormSnippet] = useState("");
     const [formRegistrationUrl, setFormRegistrationUrl] = useState("");
     const [formButtonStyle, setFormButtonStyle] = useState<WidgetButtonStyle>("gradient");
-    const [formPartnerGridColumns, setFormPartnerGridColumns] = useState<2 | 3 | 4 | 5>(4);
-    const [formPartners, setFormPartners] = useState<EventPartner[]>([]);
+    
+    // Partner Sections & People Sections
+    const [formPartnerSections, setFormPartnerSections] = useState<EventPartnerSection[]>([]);
+    const [formPeopleSections, setFormPeopleSections] = useState<EventPeopleSection[]>([]);
     const [formAgenda, setFormAgenda] = useState<EventAgendaItem[]>([]);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -156,8 +162,8 @@ const ManageEvents: React.FC = () => {
         );
         setFormRegistrationUrl(config.portalUrl);
         setFormButtonStyle("gradient");
-        setFormPartnerGridColumns(4);
-        setFormPartners([]);
+        setFormPartnerSections([]);
+        setFormPeopleSections([]);
         setFormAgenda([]);
         setIsDialogOpen(true);
     };
@@ -179,9 +185,32 @@ const ManageEvents: React.FC = () => {
         setFormSnippet(event.registrationSnippet || "");
         setFormRegistrationUrl(event.registrationUrl || "");
         setFormButtonStyle(event.buttonStyle || "gradient");
-        setFormPartnerGridColumns(event.partnerGridColumns || 4);
-        setFormPartners(event.partners ? [...event.partners] : []);
-        setFormAgenda(event.agenda ? [...event.agenda] : []);
+
+        // Load Partner Sections (fallback to legacy event.partners if needed)
+        if (event.partnerSections && event.partnerSections.length > 0) {
+            setFormPartnerSections(JSON.parse(JSON.stringify(event.partnerSections)));
+        } else if (event.partners && event.partners.length > 0) {
+            setFormPartnerSections([
+                {
+                    id: `ps-${Date.now()}`,
+                    title: "Partners & Collaborators",
+                    subtitle: "Organizations, chambers and institutions powering this initiative",
+                    gridColumns: event.partnerGridColumns || 4,
+                    partners: JSON.parse(JSON.stringify(event.partners)),
+                },
+            ]);
+        } else {
+            setFormPartnerSections([]);
+        }
+
+        // Load People Sections (speakers, delegates, etc.)
+        if (event.peopleSections && event.peopleSections.length > 0) {
+            setFormPeopleSections(JSON.parse(JSON.stringify(event.peopleSections)));
+        } else {
+            setFormPeopleSections([]);
+        }
+
+        setFormAgenda(event.agenda ? JSON.parse(JSON.stringify(event.agenda)) : []);
         setIsDialogOpen(true);
     };
 
@@ -196,7 +225,7 @@ const ManageEvents: React.FC = () => {
 
         setIsUploading(true);
         try {
-            const base64 = await processImageFile(file, 1200, 0.85);
+            const base64 = await processImageFile(file, 1400, 0.9);
             setFormBannerImage(base64);
             toast.success("Banner image uploaded successfully");
         } catch (err) {
@@ -208,33 +237,89 @@ const ManageEvents: React.FC = () => {
         }
     };
 
-    // Partner Management
-    const handleAddPartner = () => {
-        const newPartner: EventPartner = {
-            id: `partner-${Date.now()}`,
-            name: "",
-            category: "Industry Partner",
-            logo: "",
-            websiteUrl: "",
+    // ================= PARTNER SECTIONS MANAGERS =================
+    const handleAddPartnerSection = () => {
+        const newSection: EventPartnerSection = {
+            id: `psec-${Date.now()}`,
+            title: "Event Partners",
+            subtitle: "",
+            gridColumns: 4,
+            partners: [],
         };
-        setFormPartners([...formPartners, newPartner]);
+        setFormPartnerSections([...formPartnerSections, newSection]);
     };
 
-    const handleUpdatePartner = (
-        id: string,
-        field: keyof EventPartner,
-        value: string,
+    const handleUpdatePartnerSection = (
+        secId: string,
+        field: keyof EventPartnerSection,
+        val: any,
     ) => {
-        setFormPartners(
-            formPartners.map((p) => (p.id === id ? { ...p, [field]: value } : p)),
+        setFormPartnerSections(
+            formPartnerSections.map((s) => (s.id === secId ? { ...s, [field]: val } : s)),
         );
     };
 
-    const handleRemovePartner = (id: string) => {
-        setFormPartners(formPartners.filter((p) => p.id !== id));
+    const handleRemovePartnerSection = (secId: string) => {
+        setFormPartnerSections(formPartnerSections.filter((s) => s.id !== secId));
+    };
+
+    const handleMovePartnerSection = (idx: number, dir: "up" | "down") => {
+        const targetIdx = dir === "up" ? idx - 1 : idx + 1;
+        if (targetIdx < 0 || targetIdx >= formPartnerSections.length) return;
+        const copy = [...formPartnerSections];
+        const temp = copy[idx];
+        copy[idx] = copy[targetIdx];
+        copy[targetIdx] = temp;
+        setFormPartnerSections(copy);
+    };
+
+    const handleAddPartnerToSection = (secId: string) => {
+        const newPartner: EventPartner = {
+            id: `part-${Date.now()}`,
+            name: "",
+            category: "Partner",
+            logo: "",
+            websiteUrl: "",
+        };
+        setFormPartnerSections(
+            formPartnerSections.map((s) =>
+                s.id === secId ? { ...s, partners: [...s.partners, newPartner] } : s,
+            ),
+        );
+    };
+
+    const handleUpdatePartnerItem = (
+        secId: string,
+        partnerId: string,
+        field: keyof EventPartner,
+        val: string,
+    ) => {
+        setFormPartnerSections(
+            formPartnerSections.map((s) =>
+                s.id === secId
+                    ? {
+                          ...s,
+                          partners: s.partners.map((p) =>
+                              p.id === partnerId ? { ...p, [field]: val } : p,
+                          ),
+                      }
+                    : s,
+            ),
+        );
+    };
+
+    const handleRemovePartnerItem = (secId: string, partnerId: string) => {
+        setFormPartnerSections(
+            formPartnerSections.map((s) =>
+                s.id === secId
+                    ? { ...s, partners: s.partners.filter((p) => p.id !== partnerId) }
+                    : s,
+            ),
+        );
     };
 
     const handlePartnerLogoUpload = async (
+        secId: string,
         partnerId: string,
         e: React.ChangeEvent<HTMLInputElement>,
     ) => {
@@ -243,16 +328,115 @@ const ManageEvents: React.FC = () => {
 
         try {
             const base64 = await processImageFile(file, 600, 0.9);
-            handleUpdatePartner(partnerId, "logo", base64);
-            toast.success("Partner logo uploaded successfully");
+            handleUpdatePartnerItem(secId, partnerId, "logo", base64);
+            toast.success("Partner icon/logo uploaded successfully");
         } catch (err) {
-            toast.error("Failed to process partner logo");
+            toast.error("Failed to process logo file");
         } finally {
             e.target.value = "";
         }
     };
 
-    // Agenda Timeline Management
+    // ================= PEOPLE SECTIONS MANAGERS (SPEAKERS, DELEGATES, GUESTS) =================
+    const handleAddPeopleSection = () => {
+        const newSection: EventPeopleSection = {
+            id: `peopsec-${Date.now()}`,
+            title: "Distinguished Speakers",
+            subtitle: "",
+            members: [],
+        };
+        setFormPeopleSections([...formPeopleSections, newSection]);
+    };
+
+    const handleUpdatePeopleSection = (
+        secId: string,
+        field: keyof EventPeopleSection,
+        val: any,
+    ) => {
+        setFormPeopleSections(
+            formPeopleSections.map((s) => (s.id === secId ? { ...s, [field]: val } : s)),
+        );
+    };
+
+    const handleRemovePeopleSection = (secId: string) => {
+        setFormPeopleSections(formPeopleSections.filter((s) => s.id !== secId));
+    };
+
+    const handleMovePeopleSection = (idx: number, dir: "up" | "down") => {
+        const targetIdx = dir === "up" ? idx - 1 : idx + 1;
+        if (targetIdx < 0 || targetIdx >= formPeopleSections.length) return;
+        const copy = [...formPeopleSections];
+        const temp = copy[idx];
+        copy[idx] = copy[targetIdx];
+        copy[targetIdx] = temp;
+        setFormPeopleSections(copy);
+    };
+
+    const handleAddPersonToSection = (secId: string) => {
+        const newPerson: EventPerson = {
+            id: `pers-${Date.now()}`,
+            name: "",
+            company: "",
+            designation: "",
+            photo: "",
+        };
+        setFormPeopleSections(
+            formPeopleSections.map((s) =>
+                s.id === secId ? { ...s, members: [...s.members, newPerson] } : s,
+            ),
+        );
+    };
+
+    const handleUpdatePersonItem = (
+        secId: string,
+        personId: string,
+        field: keyof EventPerson,
+        val: string,
+    ) => {
+        setFormPeopleSections(
+            formPeopleSections.map((s) =>
+                s.id === secId
+                    ? {
+                          ...s,
+                          members: s.members.map((m) =>
+                              m.id === personId ? { ...m, [field]: val } : m,
+                          ),
+                      }
+                    : s,
+            ),
+        );
+    };
+
+    const handleRemovePersonItem = (secId: string, personId: string) => {
+        setFormPeopleSections(
+            formPeopleSections.map((s) =>
+                s.id === secId
+                    ? { ...s, members: s.members.filter((m) => m.id !== personId) }
+                    : s,
+            ),
+        );
+    };
+
+    const handlePersonPhotoUpload = async (
+        secId: string,
+        personId: string,
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const base64 = await processImageFile(file, 600, 0.9);
+            handleUpdatePersonItem(secId, personId, "photo", base64);
+            toast.success("Photo uploaded successfully");
+        } catch (err) {
+            toast.error("Failed to process photo");
+        } finally {
+            e.target.value = "";
+        }
+    };
+
+    // ================= AGENDA TIMELINE MANAGEMENT =================
     const handleAddAgendaItem = () => {
         const newItem: EventAgendaItem = {
             id: `agenda-${Date.now()}`,
@@ -291,15 +475,13 @@ const ManageEvents: React.FC = () => {
     const handleSaveEvent = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formTitle.trim() || !formDescription.trim()) {
-            toast.error("Please provide both Event Title and Description");
+        if (!formTitle.trim()) {
+            toast.error("Please provide an Event Title");
             return;
         }
 
-        if (!formDate.trim()) {
-            toast.error("Please select an Event Date");
-            return;
-        }
+        // Flatten all partners from partner sections for legacy fallback
+        const flattenedPartners = formPartnerSections.flatMap((s) => s.partners);
 
         let updated: ResonanceEvent[];
 
@@ -310,21 +492,22 @@ const ManageEvents: React.FC = () => {
                           ...ev,
                           title: formTitle.trim(),
                           subtitle: formSubtitle.trim() || undefined,
-                          purpose: formPurpose.trim(),
+                          purpose: formPurpose.trim() || undefined,
                           description: formDescription.trim(),
                           date: formDate.trim(),
                           startTime: formStartTime.trim() || undefined,
                           endTime: formEndTime.trim() || undefined,
                           time: formTime.trim() || undefined,
-                          venue: formVenue.trim() || "Online",
-                          category: formCategory.trim() || "Event",
+                          venue: formVenue.trim() || undefined,
+                          category: formCategory.trim() || undefined,
                           status: formStatus,
                           bannerImage: formBannerImage || "/media/placeholder.png",
                           registrationSnippet: formSnippet.trim() || undefined,
                           registrationUrl: formRegistrationUrl.trim() || undefined,
                           buttonStyle: formButtonStyle,
-                          partnerGridColumns: formPartnerGridColumns,
-                          partners: formPartners,
+                          partnerSections: formPartnerSections,
+                          peopleSections: formPeopleSections,
+                          partners: flattenedPartners,
                           agenda: formAgenda,
                       }
                     : ev,
@@ -335,21 +518,22 @@ const ManageEvents: React.FC = () => {
                 id: `event-${Date.now()}`,
                 title: formTitle.trim(),
                 subtitle: formSubtitle.trim() || undefined,
-                purpose: formPurpose.trim(),
+                purpose: formPurpose.trim() || undefined,
                 description: formDescription.trim(),
                 date: formDate.trim(),
                 startTime: formStartTime.trim() || undefined,
                 endTime: formEndTime.trim() || undefined,
                 time: formTime.trim() || undefined,
-                venue: formVenue.trim() || "Online",
-                category: formCategory.trim() || "Event",
+                venue: formVenue.trim() || undefined,
+                category: formCategory.trim() || undefined,
                 status: formStatus,
                 bannerImage: formBannerImage || "/media/placeholder.png",
                 registrationSnippet: formSnippet.trim() || undefined,
                 registrationUrl: formRegistrationUrl.trim() || undefined,
                 buttonStyle: formButtonStyle,
-                partnerGridColumns: formPartnerGridColumns,
-                partners: formPartners,
+                partnerSections: formPartnerSections,
+                peopleSections: formPeopleSections,
+                partners: flattenedPartners,
                 agenda: formAgenda,
             };
             updated = [newEvent, ...events];
@@ -416,7 +600,7 @@ const ManageEvents: React.FC = () => {
                         Events, Conclaves & Initiatives
                     </h2>
                     <p className="text-blue-100 text-xs md:text-sm mt-1 max-w-2xl leading-relaxed">
-                        Configure dates, start/end times, ecosystem partners, and timeline agendas for workshops, student entrepreneurship pitch fests, and conclaves.
+                        Configure dates, times, custom partner/sponsor sections, speakers & delegates sections, and timeline agendas.
                     </p>
                 </div>
 
@@ -523,6 +707,13 @@ const ManageEvents: React.FC = () => {
                         const displayDate = formatEventDisplayDate(ev.date);
                         const displayTime = formatEventDisplayTime(ev.startTime, ev.endTime, ev.time);
 
+                        const totalPartnersCount =
+                            ev.partnerSections?.reduce((acc, s) => acc + (s.partners?.length || 0), 0) ??
+                            ev.partners?.length ??
+                            0;
+                        const totalPeopleCount =
+                            ev.peopleSections?.reduce((acc, s) => acc + (s.members?.length || 0), 0) ?? 0;
+
                         return (
                             <Card
                                 key={ev.id}
@@ -618,11 +809,15 @@ const ManageEvents: React.FC = () => {
                                             {ev.description}
                                         </p>
 
-                                        {/* Partners & Agenda Badges */}
+                                        {/* Badges for Sections */}
                                         <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-500">
                                             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-lg font-medium">
                                                 <Building2 className="w-3 h-3 text-blue-600" />
-                                                {ev.partners?.length || 0} Partners ({ev.partnerGridColumns || 4} cols)
+                                                {totalPartnersCount} Partners / Sponsors ({ev.partnerSections?.length || 1} sections)
+                                            </span>
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-lg font-medium">
+                                                <UserCheck className="w-3 h-3 text-emerald-600" />
+                                                {totalPeopleCount} Speakers / Delegates ({ev.peopleSections?.length || 0} sections)
                                             </span>
                                             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-lg font-medium">
                                                 <CalendarCheck className="w-3 h-3 text-amber-600" />
@@ -689,7 +884,7 @@ const ManageEvents: React.FC = () => {
 
             {/* Event Edit / Create Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold text-blue-950 flex items-center gap-2">
                             <Calendar className="w-5 h-5 text-blue-600" />
@@ -697,7 +892,7 @@ const ManageEvents: React.FC = () => {
                         </DialogTitle>
                     </DialogHeader>
 
-                    <form onSubmit={handleSaveEvent} className="space-y-5 pt-2">
+                    <form onSubmit={handleSaveEvent} className="space-y-6 pt-2">
                         {/* Title & Subtitle */}
                         <div className="space-y-3">
                             <div className="space-y-1.5">
@@ -734,7 +929,7 @@ const ManageEvents: React.FC = () => {
                             <div className="space-y-1.5">
                                 <Label htmlFor="ev-date" className="text-xs font-bold text-slate-700 flex items-center gap-1">
                                     <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                                    <span>Event Date (Date picker) *</span>
+                                    <span>Event Date (Date picker)</span>
                                 </Label>
                                 <Input
                                     id="ev-date"
@@ -743,7 +938,6 @@ const ManageEvents: React.FC = () => {
                                     value={formDate}
                                     onChange={(e) => setFormDate(e.target.value)}
                                     className="rounded-xl bg-white text-xs font-semibold"
-                                    required
                                 />
                             </div>
 
@@ -833,7 +1027,7 @@ const ManageEvents: React.FC = () => {
                         <div className="space-y-1.5">
                             <Label htmlFor="ev-purpose" className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                                 <Target className="w-3.5 h-3.5 text-orange-500" />
-                                Event Purpose / Objective *
+                                Event Purpose / Objective
                             </Label>
                             <Input
                                 id="ev-purpose"
@@ -842,14 +1036,13 @@ const ManageEvents: React.FC = () => {
                                 value={formPurpose}
                                 onChange={(e) => setFormPurpose(e.target.value)}
                                 className="rounded-xl text-xs"
-                                required
                             />
                         </div>
 
                         {/* Description */}
                         <div className="space-y-1.5">
                             <Label htmlFor="ev-desc" className="text-xs font-bold text-slate-700">
-                                Full Event Description *
+                                Full Event Description
                             </Label>
                             <Textarea
                                 id="ev-desc"
@@ -858,16 +1051,20 @@ const ManageEvents: React.FC = () => {
                                 onChange={(e) => setFormDescription(e.target.value)}
                                 rows={3}
                                 className="rounded-xl text-xs leading-relaxed"
-                                required
                             />
                         </div>
 
                         {/* Banner Image */}
                         <div className="space-y-1.5 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                             <div className="flex items-center justify-between mb-1">
-                                <Label className="text-xs font-bold text-slate-700">
-                                    Banner Image
-                                </Label>
+                                <div>
+                                    <Label className="text-xs font-bold text-slate-700">
+                                        Event Banner Image
+                                    </Label>
+                                    <p className="text-[11px] text-slate-400">
+                                        Will be showcased prominently on the event page with zero text obscuring it.
+                                    </p>
+                                </div>
                                 <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-100 text-blue-700 border border-slate-200 rounded-lg text-xs font-semibold transition-colors">
                                     <Upload className="w-3.5 h-3.5" />
                                     {isUploading ? "Processing..." : "Upload Image"}
@@ -891,166 +1088,259 @@ const ManageEvents: React.FC = () => {
                                 className="bg-white rounded-xl text-xs font-mono"
                             />
                             {formBannerImage && (
-                                <div className="mt-2 aspect-[21/9] rounded-xl overflow-hidden bg-slate-100 max-h-36">
+                                <div className="mt-2 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 max-h-48">
                                     <img
                                         src={formBannerImage}
                                         alt="Banner Preview"
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-auto max-h-48 object-contain mx-auto"
                                     />
                                 </div>
                             )}
                         </div>
 
-                        {/* Event Partners Section */}
-                        <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                        {/* ================= PEOPLE SECTIONS MANAGER (SPEAKERS, DELEGATES, GUESTS) ================= */}
+                        <div className="space-y-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
                                 <div>
                                     <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                        <Building2 className="w-4 h-4 text-blue-600" />
-                                        <span>Event Partners & Collaborators</span>
+                                        <Users className="w-4 h-4 text-emerald-600" />
+                                        <span>Speakers, Delegates & Guests Sections</span>
                                     </h4>
                                     <p className="text-[11px] text-slate-500">
-                                        Accepts SVG files along with PNG and JPEG. Specify kind of partner text and grid columns.
+                                        Add different sections with editable names (e.g. Keynote Speakers, Delegates, Guests of Honour). Photos display in uniform round frames. No fields mandatory.
                                     </p>
                                 </div>
-
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-1.5">
-                                        <Label className="text-[11px] font-bold text-slate-600">Grid:</Label>
-                                        <select
-                                            value={formPartnerGridColumns}
-                                            onChange={(e) =>
-                                                setFormPartnerGridColumns(
-                                                    Number(e.target.value) as 2 | 3 | 4 | 5,
-                                                )
-                                            }
-                                            className="h-8 px-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold">
-                                            <option value={2}>2 Columns</option>
-                                            <option value={3}>3 Columns</option>
-                                            <option value={4}>4 Columns (Default)</option>
-                                            <option value={5}>5 Columns</option>
-                                        </select>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        onClick={handleAddPartner}
-                                        size="sm"
-                                        className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1">
-                                        <Plus className="w-3.5 h-3.5" />
-                                        Add Partner
-                                    </Button>
-                                </div>
+                                <Button
+                                    type="button"
+                                    onClick={handleAddPeopleSection}
+                                    size="sm"
+                                    className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-1">
+                                    <Plus className="w-3.5 h-3.5" />
+                                    Add People Section
+                                </Button>
                             </div>
 
-                            {formPartners.length === 0 ? (
+                            {formPeopleSections.length === 0 ? (
                                 <p className="text-xs text-slate-400 italic py-2 text-center">
-                                    No partners added yet. Click &quot;Add Partner&quot; above to list sponsors and collaborators.
+                                    No people sections yet. Click &quot;Add People Section&quot; to list speakers, delegates, or guests.
                                 </p>
                             ) : (
-                                <div className="space-y-3 pt-1">
-                                    {formPartners.map((partner, pIdx) => (
+                                <div className="space-y-4 pt-1">
+                                    {formPeopleSections.map((sec, sIdx) => (
                                         <div
-                                            key={partner.id}
-                                            className="p-3 bg-white rounded-xl border border-slate-200 space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                                    Partner #{pIdx + 1}
-                                                </span>
-                                                <Button
-                                                    type="button"
-                                                    onClick={() => handleRemovePartner(partner.id)}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700">
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </Button>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                <div>
-                                                    <Label className="text-[10px] font-semibold text-slate-600">
-                                                        Partner Name *
-                                                    </Label>
-                                                    <Input
-                                                        placeholder="e.g. Tata Motors"
-                                                        value={partner.name}
-                                                        onChange={(e) =>
-                                                            handleUpdatePartner(
-                                                                partner.id,
-                                                                "name",
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        className="h-8 text-xs rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label className="text-[10px] font-semibold text-slate-600">
-                                                        Kind of Partner (Badge Text) *
-                                                    </Label>
-                                                    <Input
-                                                        placeholder="e.g. Title Partner, Academic Partner, Industry Partner"
-                                                        value={partner.category}
-                                                        onChange={(e) =>
-                                                            handleUpdatePartner(
-                                                                partner.id,
-                                                                "category",
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        className="h-8 text-xs rounded-lg"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-0.5">
-                                                        <Label className="text-[10px] font-semibold text-slate-600">
-                                                            Partner Logo (SVG / PNG / JPG)
+                                            key={sec.id}
+                                            className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs space-y-3">
+                                            {/* Section Header Controls */}
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    <div>
+                                                        <Label className="text-[10px] font-bold text-slate-600 uppercase">
+                                                            Section Title (Editable)
                                                         </Label>
-                                                        <label className="cursor-pointer text-[10px] font-bold text-blue-600 hover:text-blue-800">
-                                                            Upload SVG/Image
-                                                            <input
-                                                                type="file"
-                                                                accept=".svg,.png,.jpg,.jpeg,.webp,image/*"
-                                                                onChange={(e) =>
-                                                                    handlePartnerLogoUpload(partner.id, e)
-                                                                }
-                                                                className="hidden"
-                                                            />
-                                                        </label>
+                                                        <Input
+                                                            placeholder="e.g. Keynote Speakers / Eminent Delegates / Special Guests"
+                                                            value={sec.title}
+                                                            onChange={(e) =>
+                                                                handleUpdatePeopleSection(
+                                                                    sec.id,
+                                                                    "title",
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            className="h-8 text-xs rounded-lg font-bold text-blue-950"
+                                                        />
                                                     </div>
-                                                    <Input
-                                                        placeholder="URL or /images/..."
-                                                        value={partner.logo}
-                                                        onChange={(e) =>
-                                                            handleUpdatePartner(
-                                                                partner.id,
-                                                                "logo",
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        className="h-8 text-xs rounded-lg"
-                                                    />
+                                                    <div>
+                                                        <Label className="text-[10px] font-semibold text-slate-500 uppercase">
+                                                            Subtitle (Optional)
+                                                        </Label>
+                                                        <Input
+                                                            placeholder="Optional brief description"
+                                                            value={sec.subtitle || ""}
+                                                            onChange={(e) =>
+                                                                handleUpdatePeopleSection(
+                                                                    sec.id,
+                                                                    "subtitle",
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            className="h-8 text-xs rounded-lg"
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <Label className="text-[10px] font-semibold text-slate-600">
-                                                        Website URL (Optional)
-                                                    </Label>
-                                                    <Input
-                                                        placeholder="https://..."
-                                                        value={partner.websiteUrl || ""}
-                                                        onChange={(e) =>
-                                                            handleUpdatePartner(
-                                                                partner.id,
-                                                                "websiteUrl",
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        className="h-8 text-xs rounded-lg"
-                                                    />
+
+                                                <div className="flex items-center gap-1 self-end sm:self-center">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        disabled={sIdx === 0}
+                                                        onClick={() => handleMovePeopleSection(sIdx, "up")}
+                                                        className="h-7 w-7 p-0 text-slate-500">
+                                                        <ArrowUp className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        disabled={sIdx === formPeopleSections.length - 1}
+                                                        onClick={() => handleMovePeopleSection(sIdx, "down")}
+                                                        className="h-7 w-7 p-0 text-slate-500">
+                                                        <ArrowDown className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => handleRemovePeopleSection(sec.id)}
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </Button>
                                                 </div>
+                                            </div>
+
+                                            {/* Members in this section */}
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] font-semibold text-slate-600">
+                                                        Members ({sec.members.length})
+                                                    </span>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => handleAddPersonToSection(sec.id)}
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-7 text-xs border-emerald-200 text-emerald-800 hover:bg-emerald-50 rounded-lg flex items-center gap-1">
+                                                        <Plus className="w-3 h-3" />
+                                                        Add Person
+                                                    </Button>
+                                                </div>
+
+                                                {sec.members.length === 0 ? (
+                                                    <p className="text-[11px] text-slate-400 italic py-1">
+                                                        No members added to &quot;{sec.title}&quot; yet.
+                                                    </p>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {sec.members.map((person, pIdx) => (
+                                                            <div
+                                                                key={person.id}
+                                                                className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                                                        Individual #{pIdx + 1}
+                                                                    </span>
+                                                                    <Button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            handleRemovePersonItem(
+                                                                                sec.id,
+                                                                                person.id,
+                                                                            )
+                                                                        }
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700">
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </Button>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                                    <div>
+                                                                        <Label className="text-[10px] font-semibold text-slate-600">
+                                                                            Name
+                                                                        </Label>
+                                                                        <Input
+                                                                            placeholder="e.g. Dr. Milind Kamble"
+                                                                            value={person.name || ""}
+                                                                            onChange={(e) =>
+                                                                                handleUpdatePersonItem(
+                                                                                    sec.id,
+                                                                                    person.id,
+                                                                                    "name",
+                                                                                    e.target.value,
+                                                                                )
+                                                                            }
+                                                                            className="h-8 text-xs rounded-lg bg-white"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <Label className="text-[10px] font-semibold text-slate-600">
+                                                                            Designation
+                                                                        </Label>
+                                                                        <Input
+                                                                            placeholder="e.g. Founder Chairman"
+                                                                            value={person.designation || ""}
+                                                                            onChange={(e) =>
+                                                                                handleUpdatePersonItem(
+                                                                                    sec.id,
+                                                                                    person.id,
+                                                                                    "designation",
+                                                                                    e.target.value,
+                                                                                )
+                                                                            }
+                                                                            className="h-8 text-xs rounded-lg bg-white"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <Label className="text-[10px] font-semibold text-slate-600">
+                                                                            Company / Organization
+                                                                        </Label>
+                                                                        <Input
+                                                                            placeholder="e.g. DICCI / Tata Motors"
+                                                                            value={person.company || ""}
+                                                                            onChange={(e) =>
+                                                                                handleUpdatePersonItem(
+                                                                                    sec.id,
+                                                                                    person.id,
+                                                                                    "company",
+                                                                                    e.target.value,
+                                                                                )
+                                                                            }
+                                                                            className="h-8 text-xs rounded-lg bg-white"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                <div>
+                                                                    <div className="flex items-center justify-between mb-0.5">
+                                                                        <Label className="text-[10px] font-semibold text-slate-600">
+                                                                            Photo (URL or Upload)
+                                                                        </Label>
+                                                                        <label className="cursor-pointer text-[10px] font-bold text-blue-600 hover:text-blue-800">
+                                                                            Upload Photo
+                                                                            <input
+                                                                                type="file"
+                                                                                accept=".svg,.png,.jpg,.jpeg,.webp,image/*"
+                                                                                onChange={(e) =>
+                                                                                    handlePersonPhotoUpload(
+                                                                                        sec.id,
+                                                                                        person.id,
+                                                                                        e,
+                                                                                    )
+                                                                                }
+                                                                                className="hidden"
+                                                                            />
+                                                                        </label>
+                                                                    </div>
+                                                                    <Input
+                                                                        placeholder="Image URL or /images/..."
+                                                                        value={person.photo || ""}
+                                                                        onChange={(e) =>
+                                                                            handleUpdatePersonItem(
+                                                                                sec.id,
+                                                                                person.id,
+                                                                                "photo",
+                                                                                e.target.value,
+                                                                            )
+                                                                        }
+                                                                        className="h-8 text-xs rounded-lg bg-white"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -1058,7 +1348,279 @@ const ManageEvents: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Event Agenda Section (Timeline-like) */}
+                        {/* ================= PARTNER & SPONSOR SECTIONS MANAGER ================= */}
+                        <div className="space-y-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                                <div>
+                                    <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                        <Building2 className="w-4 h-4 text-blue-600" />
+                                        <span>Partner & Sponsor Sections</span>
+                                    </h4>
+                                    <p className="text-[11px] text-slate-500">
+                                        Add different sections (e.g. Title Partners, Sponsors, Knowledge Partners). On the live page, only the icon and kind of partner badge are shown (no partner name text).
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    onClick={handleAddPartnerSection}
+                                    size="sm"
+                                    className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1">
+                                    <Plus className="w-3.5 h-3.5" />
+                                    Add Partner Section
+                                </Button>
+                            </div>
+
+                            {formPartnerSections.length === 0 ? (
+                                <p className="text-xs text-slate-400 italic py-2 text-center">
+                                    No partner sections yet. Click &quot;Add Partner Section&quot; above.
+                                </p>
+                            ) : (
+                                <div className="space-y-4 pt-1">
+                                    {formPartnerSections.map((sec, sIdx) => (
+                                        <div
+                                            key={sec.id}
+                                            className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs space-y-3">
+                                            {/* Section Header */}
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                    <div className="sm:col-span-1">
+                                                        <Label className="text-[10px] font-bold text-slate-600 uppercase">
+                                                            Section Title (Editable)
+                                                        </Label>
+                                                        <Input
+                                                            placeholder="e.g. Title Partners / Event Sponsors"
+                                                            value={sec.title}
+                                                            onChange={(e) =>
+                                                                handleUpdatePartnerSection(
+                                                                    sec.id,
+                                                                    "title",
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            className="h-8 text-xs rounded-lg font-bold text-blue-950"
+                                                        />
+                                                    </div>
+                                                    <div className="sm:col-span-1">
+                                                        <Label className="text-[10px] font-semibold text-slate-500 uppercase">
+                                                            Subtitle (Optional)
+                                                        </Label>
+                                                        <Input
+                                                            placeholder="Optional subtitle"
+                                                            value={sec.subtitle || ""}
+                                                            onChange={(e) =>
+                                                                handleUpdatePartnerSection(
+                                                                    sec.id,
+                                                                    "subtitle",
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            className="h-8 text-xs rounded-lg"
+                                                        />
+                                                    </div>
+                                                    <div className="sm:col-span-1">
+                                                        <Label className="text-[10px] font-semibold text-slate-500 uppercase">
+                                                            Grid Columns
+                                                        </Label>
+                                                        <select
+                                                            value={sec.gridColumns || 4}
+                                                            onChange={(e) =>
+                                                                handleUpdatePartnerSection(
+                                                                    sec.id,
+                                                                    "gridColumns",
+                                                                    Number(e.target.value) as 2 | 3 | 4 | 5,
+                                                                )
+                                                            }
+                                                            className="w-full h-8 px-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold">
+                                                            <option value={2}>2 Columns</option>
+                                                            <option value={3}>3 Columns</option>
+                                                            <option value={4}>4 Columns (Default)</option>
+                                                            <option value={5}>5 Columns</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-1 self-end sm:self-center">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        disabled={sIdx === 0}
+                                                        onClick={() => handleMovePartnerSection(sIdx, "up")}
+                                                        className="h-7 w-7 p-0 text-slate-500">
+                                                        <ArrowUp className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        disabled={sIdx === formPartnerSections.length - 1}
+                                                        onClick={() => handleMovePartnerSection(sIdx, "down")}
+                                                        className="h-7 w-7 p-0 text-slate-500">
+                                                        <ArrowDown className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => handleRemovePartnerSection(sec.id)}
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            {/* Partners in this section */}
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] font-semibold text-slate-600">
+                                                        Partners / Sponsors ({sec.partners.length})
+                                                    </span>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => handleAddPartnerToSection(sec.id)}
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-7 text-xs border-blue-200 text-blue-800 hover:bg-blue-50 rounded-lg flex items-center gap-1">
+                                                        <Plus className="w-3 h-3" />
+                                                        Add Partner / Sponsor
+                                                    </Button>
+                                                </div>
+
+                                                {sec.partners.length === 0 ? (
+                                                    <p className="text-[11px] text-slate-400 italic py-1">
+                                                        No partners added to &quot;{sec.title}&quot; yet.
+                                                    </p>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {sec.partners.map((partner, pIdx) => (
+                                                            <div
+                                                                key={partner.id}
+                                                                className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                                                        Partner #{pIdx + 1}
+                                                                    </span>
+                                                                    <Button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            handleRemovePartnerItem(
+                                                                                sec.id,
+                                                                                partner.id,
+                                                                            )
+                                                                        }
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700">
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </Button>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                    <div>
+                                                                        <Label className="text-[10px] font-semibold text-slate-600">
+                                                                            Kind of Partner (Badge Text)
+                                                                        </Label>
+                                                                        <Input
+                                                                            placeholder="e.g. Title Partner, Academic Partner, Industry Partner"
+                                                                            value={partner.category || ""}
+                                                                            onChange={(e) =>
+                                                                                handleUpdatePartnerItem(
+                                                                                    sec.id,
+                                                                                    partner.id,
+                                                                                    "category",
+                                                                                    e.target.value,
+                                                                                )
+                                                                            }
+                                                                            className="h-8 text-xs rounded-lg bg-white"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <Label className="text-[10px] font-semibold text-slate-600">
+                                                                            Partner Name (Internal Reference)
+                                                                        </Label>
+                                                                        <Input
+                                                                            placeholder="e.g. Tata Motors (hidden on public site)"
+                                                                            value={partner.name || ""}
+                                                                            onChange={(e) =>
+                                                                                handleUpdatePartnerItem(
+                                                                                    sec.id,
+                                                                                    partner.id,
+                                                                                    "name",
+                                                                                    e.target.value,
+                                                                                )
+                                                                            }
+                                                                            className="h-8 text-xs rounded-lg bg-white"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                                                    <div>
+                                                                        <div className="flex items-center justify-between mb-0.5">
+                                                                            <Label className="text-[10px] font-semibold text-slate-600">
+                                                                                Logo / Icon (SVG / PNG / JPG)
+                                                                            </Label>
+                                                                            <label className="cursor-pointer text-[10px] font-bold text-blue-600 hover:text-blue-800">
+                                                                                Upload SVG/Image
+                                                                                <input
+                                                                                    type="file"
+                                                                                    accept=".svg,.png,.jpg,.jpeg,.webp,image/*"
+                                                                                    onChange={(e) =>
+                                                                                        handlePartnerLogoUpload(
+                                                                                            sec.id,
+                                                                                            partner.id,
+                                                                                            e,
+                                                                                        )
+                                                                                    }
+                                                                                    className="hidden"
+                                                                                />
+                                                                            </label>
+                                                                        </div>
+                                                                        <Input
+                                                                            placeholder="URL or /images/..."
+                                                                            value={partner.logo || ""}
+                                                                            onChange={(e) =>
+                                                                                handleUpdatePartnerItem(
+                                                                                    sec.id,
+                                                                                    partner.id,
+                                                                                    "logo",
+                                                                                    e.target.value,
+                                                                                )
+                                                                            }
+                                                                            className="h-8 text-xs rounded-lg bg-white"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <Label className="text-[10px] font-semibold text-slate-600">
+                                                                            Website URL (Optional)
+                                                                        </Label>
+                                                                        <Input
+                                                                            placeholder="https://..."
+                                                                            value={partner.websiteUrl || ""}
+                                                                            onChange={(e) =>
+                                                                                handleUpdatePartnerItem(
+                                                                                    sec.id,
+                                                                                    partner.id,
+                                                                                    "websiteUrl",
+                                                                                    e.target.value,
+                                                                                )
+                                                                            }
+                                                                            className="h-8 text-xs rounded-lg bg-white"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ================= AGENDA TIMELINE SECTION ================= */}
                         <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                                 <div>
@@ -1127,7 +1689,7 @@ const ManageEvents: React.FC = () => {
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                 <div>
                                                     <Label className="text-[10px] font-semibold text-slate-600">
-                                                        Session Time Range *
+                                                        Session Time Range
                                                     </Label>
                                                     <Input
                                                         placeholder="e.g. 09:30 AM - 10:15 AM"
@@ -1163,7 +1725,7 @@ const ManageEvents: React.FC = () => {
 
                                             <div>
                                                 <Label className="text-[10px] font-semibold text-slate-600">
-                                                    Session Title *
+                                                    Session Title
                                                 </Label>
                                                 <Input
                                                     placeholder="e.g. Inaugural Keynote & Lighting of the Lamp"
