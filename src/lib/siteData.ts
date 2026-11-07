@@ -101,6 +101,22 @@ export interface SiteSettings {
     showTeamOnAbout: boolean;
 }
 
+export interface EventPartner {
+    id: string;
+    name: string;
+    category: string;
+    logo: string;
+    websiteUrl?: string;
+}
+
+export interface EventAgendaItem {
+    id: string;
+    time: string;
+    title: string;
+    speaker?: string;
+    description?: string;
+}
+
 export interface ResonanceEvent {
     id: string;
     title: string;
@@ -109,6 +125,8 @@ export interface ResonanceEvent {
     description: string;
     bannerImage: string;
     date: string;
+    startTime?: string;
+    endTime?: string;
     time?: string;
     venue: string;
     category?: string;
@@ -116,6 +134,9 @@ export interface ResonanceEvent {
     registrationSnippet?: string;
     registrationUrl?: string;
     buttonStyle?: "gradient" | "navy" | "glow" | "classic";
+    partnerGridColumns?: 2 | 3 | 4 | 5;
+    partners?: EventPartner[];
+    agenda?: EventAgendaItem[];
 }
 
 export interface EventsConfig {
@@ -537,11 +558,86 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
             "A full-day flagship conclave featuring keynote addresses by MSCI leaders, panel discussions on work-integrated degree models (AEDP/WISTA), and structured corporate networking lounges. Organizations will receive practical guidance on stipend reimbursement and apprenticeship capacity expansion.",
         bannerImage:
             "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop",
-        date: "March 28, 2026",
+        date: "2026-03-28",
+        startTime: "09:30",
+        endTime: "17:30",
         time: "09:30 AM - 05:30 PM IST",
         venue: "Auto Cluster Exhibition Centre, Chinchwad, Pune",
         category: "Conclave",
         status: "upcoming",
+        partnerGridColumns: 4,
+        partners: [
+            {
+                id: "p-1",
+                name: "Tata Motors",
+                category: "Automotive Industry Partner",
+                logo: "/images/clients/1.svg",
+                websiteUrl: "https://www.tatamotors.com",
+            },
+            {
+                id: "p-2",
+                name: "DICCI",
+                category: "Industry Chamber Partner",
+                logo: "/images/govlogo/1.svg",
+                websiteUrl: "https://dicci.in",
+            },
+            {
+                id: "p-3",
+                name: "Skill India / NSDC",
+                category: "Skill Development Partner",
+                logo: "/images/govlogo/2.svg",
+                websiteUrl: "https://www.skillindia.gov.in",
+            },
+            {
+                id: "p-4",
+                name: "Savitribai Phule Pune University",
+                category: "Academic Knowledge Partner",
+                logo: "/images/clients/2.svg",
+                websiteUrl: "http://www.unipune.ac.in",
+            },
+        ],
+        agenda: [
+            {
+                id: "ag-1",
+                time: "09:30 AM - 10:15 AM",
+                title: "Inaugural Keynote & Lighting of the Lamp",
+                speaker: "Dr. Milind Kamble (Chairman - DICCI) & Chief Guests",
+                description:
+                    "Opening reflections on the evolving role of NATS/NAPS apprenticeships in driving industrial self-reliance.",
+            },
+            {
+                id: "ag-2",
+                time: "10:15 AM - 11:30 AM",
+                title: "Panel Discussion: Work-Integrated Degree Apprenticeship (WIDA)",
+                speaker: "Industry HR Directors & Academic Deans",
+                description:
+                    "Practical frameworks for aligning engineering curriculums with live floor-shop apprenticeship requirements.",
+            },
+            {
+                id: "ag-3",
+                time: "11:45 AM - 01:15 PM",
+                title: "Corporate Talent Showcase & Onboarding Masterclass",
+                speaker: "Resonance Apprenticeship Advisory Team",
+                description:
+                    "Walkthrough of automated compliance, DBT stipend subsidies, and institutional partner matching.",
+            },
+            {
+                id: "ag-4",
+                time: "02:00 PM - 03:45 PM",
+                title: "Industry Networking Lounges & MOU Exchange",
+                speaker: "Participating Corporate Delegates",
+                description:
+                    "Structured 1-on-1 enterprise interactions and formalizing academic tie-ups for upcoming cohorts.",
+            },
+            {
+                id: "ag-5",
+                time: "04:00 PM - 05:30 PM",
+                title: "Valedictory Address & Certificate Distribution",
+                speaker: "Distinguished Guests & resonance Leadership",
+                description:
+                    "Honoring leading employer contributions and concluding roadmap for 2026-2027 skill initiatives.",
+            },
+        ],
         registrationSnippet: "<div><script src=\"https://widget.konfhub.com/widget.js\" button_id=\"btn_6390d9287402\"></script></div>",
         registrationUrl: "https://konfhub.com/national-csr-conclave-resonance-rmp",
         buttonStyle: "gradient",
@@ -556,11 +652,61 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
             "An intense 2-day startup summit comprising prototype demonstrations, rapid business modeling workshops, and a live pitch competition in front of early-stage venture funds and ecosystem leaders.",
         bannerImage:
             "https://images.unsplash.com/photo-1515187029135-18ee286d815b?q=80&w=1200&auto=format&fit=crop",
-        date: "April 18, 2026",
+        date: "2026-04-18",
+        startTime: "10:00",
+        endTime: "16:30",
         time: "10:00 AM - 04:30 PM IST",
         venue: "Resonance Innovation Auditorium, Pune & Online Streaming",
         category: "Bootcamp",
         status: "upcoming",
+        partnerGridColumns: 3,
+        partners: [
+            {
+                id: "p-201",
+                name: "Startup India Hub",
+                category: "Incubation Partner",
+                logo: "/images/govlogo/3.svg",
+                websiteUrl: "https://www.startupindia.gov.in",
+            },
+            {
+                id: "p-202",
+                name: "Venture Catalyst Fund",
+                category: "Investment Partner",
+                logo: "/images/clients/3.svg",
+            },
+            {
+                id: "p-203",
+                name: "Engineering Colleges Consortium",
+                category: "Academic Ecosystem Partner",
+                logo: "/images/clients/4.svg",
+            },
+        ],
+        agenda: [
+            {
+                id: "ag-201",
+                time: "10:00 AM - 11:00 AM",
+                title: "Student Startup Orientation & Pitch Guidelines",
+                speaker: "Resonance Mentorship Cell",
+                description:
+                    "Overview of evaluation rubrics, unit economics validation, and investor presentation formats.",
+            },
+            {
+                id: "ag-202",
+                time: "11:15 AM - 01:30 PM",
+                title: "Round 1: Rapid Fire Pitching & Mentoring Booths",
+                speaker: "Angel Investors & Industry Mentors",
+                description:
+                    "Top 20 shortlisted collegiate ventures present prototype demonstrations across Tech, Agritech, and EV domains.",
+            },
+            {
+                id: "ag-203",
+                time: "02:30 PM - 04:30 PM",
+                title: "Grand Finale: Live Seed Grants & Incubation Announcements",
+                speaker: "Jury Panel",
+                description:
+                    "Announcement of prototyping grants, equity-free seed awards, and year-long incubation onboarding.",
+            },
+        ],
         registrationSnippet: "<a href=\"https://events.theresonance.co.in\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#ffffff;font-family:sans-serif;font-size:13px;font-weight:700;padding:10px 22px;border-radius:9999px;text-decoration:none;box-shadow:0 4px 12px rgba(37,99,235,0.3);transition:all 0.2s ease;\"><span>Register for Event</span><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></a>",
         registrationUrl: "https://events.theresonance.co.in",
     },
@@ -1301,6 +1447,18 @@ export const processImageFile = (
     quality = 0.85,
 ): Promise<string> => {
     return new Promise((resolve, reject) => {
+        // Direct passthrough for SVG vectors to avoid rasterization / quality degradation
+        if (
+            file.type === "image/svg+xml" ||
+            file.name.toLowerCase().endsWith(".svg")
+        ) {
+            const svgReader = new FileReader();
+            svgReader.onload = (e) => resolve((e.target?.result as string) || "");
+            svgReader.onerror = (e) => reject(e);
+            svgReader.readAsDataURL(file);
+            return;
+        }
+
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (event) => {
@@ -1332,6 +1490,62 @@ export const processImageFile = (
         reader.onerror = (err) => reject(err);
     });
 };
+
+// ================= EVENT DATE & TIME HELPERS =================
+export function isEventPast(dateStr?: string, status?: string): boolean {
+    if (status === "completed") return true;
+    if (!dateStr || !dateStr.trim()) return false;
+    const parsed = new Date(dateStr);
+    if (isNaN(parsed.getTime())) return false;
+    // Set to end of day in local time so it stays active during the event day
+    const endOfDay = new Date(
+        parsed.getFullYear(),
+        parsed.getMonth(),
+        parsed.getDate(),
+        23,
+        59,
+        59,
+        999,
+    );
+    return Date.now() > endOfDay.getTime();
+}
+
+export function formatEventDisplayDate(dateStr?: string): string {
+    if (!dateStr || !dateStr.trim()) return "";
+    const parsed = new Date(dateStr);
+    if (isNaN(parsed.getTime())) return dateStr;
+    return parsed.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    });
+}
+
+function formatTime12Hour(time24: string): string {
+    if (!time24 || !time24.includes(":")) return time24;
+    const [hStr, mStr] = time24.split(":");
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (isNaN(h) || isNaN(m)) return time24;
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    const padM = m < 10 ? `0${m}` : `${m}`;
+    return `${h12}:${padM} ${ampm}`;
+}
+
+export function formatEventDisplayTime(
+    startTime?: string,
+    endTime?: string,
+    legacyTime?: string,
+): string {
+    if (startTime && endTime) {
+        return `${formatTime12Hour(startTime)} - ${formatTime12Hour(endTime)}`;
+    }
+    if (startTime) {
+        return `From ${formatTime12Hour(startTime)}`;
+    }
+    return legacyTime || "";
+}
 
 // ================= VISITOR ANALYTICS =================
 export const getVisitorStats = (): VisitorStats => {

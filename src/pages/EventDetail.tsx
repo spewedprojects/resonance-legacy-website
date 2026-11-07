@@ -1,0 +1,439 @@
+import React, { useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import {
+    Calendar,
+    Clock,
+    MapPin,
+    ArrowLeft,
+    Share2,
+    Target,
+    Users,
+    Sparkles,
+    ExternalLink,
+    CheckCircle2,
+    CalendarCheck,
+    Building2,
+    Briefcase,
+} from "lucide-react";
+import {
+    useSiteEvents,
+    useSiteEventsConfig,
+    isEventPast,
+    formatEventDisplayDate,
+    formatEventDisplayTime,
+    ResonanceEvent,
+} from "@/lib/siteData";
+import EventRegistrationWidget from "@/components/EventRegistrationWidget";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
+const EventDetail: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const events = useSiteEvents();
+    const config = useSiteEventsConfig();
+
+    // Scroll to top on navigation
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }, [id]);
+
+    const event = events.find((ev) => ev.id === id);
+
+    const handleShare = (ev: ResonanceEvent) => {
+        if (navigator.share) {
+            navigator
+                .share({
+                    title: ev.title,
+                    text: ev.purpose || ev.description,
+                    url: window.location.href,
+                })
+                .catch(() => {});
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            toast.success("Event link copied to clipboard!");
+        }
+    };
+
+    if (!event) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex flex-col justify-between">
+                <Navbar />
+                <main className="flex-1 flex items-center justify-center p-6 pt-32">
+                    <div className="bg-white rounded-3xl p-10 max-w-lg w-full text-center shadow-lg border border-slate-100">
+                        <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <h1 className="text-2xl font-bold text-blue-950 mb-2">
+                            Event Not Found
+                        </h1>
+                        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                            The event you are looking for does not exist, has been removed, or the link may be outdated.
+                        </p>
+                        <Link to="/events">
+                            <Button className="rounded-xl px-6 bg-[#2E5C9D] hover:bg-[#23487c]">
+                                <ArrowLeft className="w-4 h-4 mr-2" />
+                                Back to All Events
+                            </Button>
+                        </Link>
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
+    const past = isEventPast(event.date, event.status);
+    const displayDate = formatEventDisplayDate(event.date);
+    const displayTime = formatEventDisplayTime(event.startTime, event.endTime, event.time);
+
+    // Compute dynamic column layout for partners grid
+    const getPartnerGridClass = (cols?: number) => {
+        switch (cols) {
+            case 2:
+                return "grid-cols-1 sm:grid-cols-2";
+            case 3:
+                return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3";
+            case 5:
+                return "grid-cols-2 sm:grid-cols-3 md:grid-cols-5";
+            case 4:
+            default:
+                return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-between">
+            <Navbar />
+
+            <main className="flex-1 pt-24 pb-20">
+                {/* Breadcrumbs & Navigation Header */}
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <Link
+                            to="/events"
+                            className="inline-flex items-center gap-1.5 font-bold text-slate-600 hover:text-blue-700 transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm">
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                            <span>All Events & Initiatives</span>
+                        </Link>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleShare(event)}
+                                className="inline-flex items-center gap-1.5 font-semibold text-slate-600 hover:text-blue-700 transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm"
+                                title="Share Event Link">
+                                <Share2 className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Share Event</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Hero Banner Section */}
+                <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-10">
+                    <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200/80 bg-slate-900 text-white min-h-[380px] sm:min-h-[440px] flex flex-col justify-end">
+                        {/* Reused Banner Background */}
+                        <img
+                            src={event.bannerImage || "/media/placeholder.png"}
+                            alt={event.title}
+                            className="absolute inset-0 w-full h-full object-cover opacity-35"
+                            onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src =
+                                    "/media/placeholder.png";
+                            }}
+                        />
+
+                        {/* High-contrast gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent" />
+
+                        {/* Hero Content */}
+                        <div className="relative p-6 sm:p-10 md:p-12 space-y-4">
+                            {/* Badges */}
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                {event.category && (
+                                    <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-500/80 text-white backdrop-blur-sm shadow-sm">
+                                        {event.category}
+                                    </span>
+                                )}
+                                <span
+                                    className={`px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-white shadow-sm ${
+                                        past
+                                            ? "bg-slate-600"
+                                            : event.status === "ongoing"
+                                            ? "bg-orange-500 animate-pulse"
+                                            : "bg-emerald-600"
+                                    }`}>
+                                    {past ? "Completed / Concluded" : event.status}
+                                </span>
+                            </div>
+
+                            {/* Title & Subtitle */}
+                            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white leading-tight tracking-tight max-w-4xl">
+                                {event.title}
+                            </h1>
+
+                            {event.subtitle && (
+                                <p className="text-sm sm:text-base md:text-lg font-medium text-blue-200 max-w-3xl leading-relaxed">
+                                    {event.subtitle}
+                                </p>
+                            )}
+
+                            {/* Meta Quick Bar */}
+                            <div className="pt-2 flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-slate-200">
+                                {displayDate && (
+                                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/15">
+                                        <Calendar className="w-4 h-4 text-orange-400 shrink-0" />
+                                        <span className="font-semibold text-white">{displayDate}</span>
+                                    </div>
+                                )}
+                                {displayTime && (
+                                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/15">
+                                        <Clock className="w-4 h-4 text-blue-300 shrink-0" />
+                                        <span className="font-medium text-slate-100">{displayTime}</span>
+                                    </div>
+                                )}
+                                {event.venue && (
+                                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/15">
+                                        <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
+                                        <span className="font-medium text-slate-100">{event.venue}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Hero Registration Button */}
+                            <div className="pt-4 flex flex-wrap items-center gap-4">
+                                <EventRegistrationWidget
+                                    snippet={event.registrationSnippet}
+                                    fallbackUrl={event.registrationUrl}
+                                    eventTitle={event.title}
+                                    buttonStyle={event.buttonStyle || "gradient"}
+                                    isPast={past}
+                                    className="scale-105 origin-left"
+                                />
+                                {past && (
+                                    <span className="text-xs text-slate-300 font-medium">
+                                        This event took place on {displayDate}. Registrations are now closed.
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12">
+                    {/* Purpose Section */}
+                    {event.purpose && (
+                        <section className="bg-gradient-to-r from-orange-50 via-amber-50/60 to-orange-50/40 rounded-3xl p-6 sm:p-8 border border-orange-200/80 shadow-sm">
+                            <div className="flex items-start gap-4">
+                                <div className="p-3 bg-orange-600 text-white rounded-2xl shadow-md shrink-0 mt-0.5">
+                                    <Target className="w-6 h-6" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-orange-700">
+                                        Event Purpose & Vision
+                                    </span>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-orange-950">
+                                        Core Objectives & Desired Impact
+                                    </h2>
+                                    <p className="text-sm sm:text-base text-slate-700 leading-relaxed pt-1">
+                                        {event.purpose}
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Full Description Section */}
+                    <section className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm space-y-4">
+                        <div className="flex items-center gap-2 text-xs font-bold text-blue-700 uppercase tracking-wider">
+                            <Briefcase className="w-4 h-4" />
+                            <span>Detailed Overview</span>
+                        </div>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
+                            About This Initiative
+                        </h2>
+                        <div className="text-sm sm:text-base text-slate-600 leading-relaxed whitespace-pre-line space-y-4 pt-1">
+                            {event.description}
+                        </div>
+                    </section>
+
+                    {/* Partners & Collaborators Section */}
+                    {event.partners && event.partners.length > 0 && (
+                        <section className="space-y-6">
+                            <div className="space-y-1 text-center sm:text-left">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full uppercase tracking-wider">
+                                    <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Ecosystem Partners</span>
+                                </div>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
+                                    Partners & Collaborators
+                                </h2>
+                                <p className="text-xs sm:text-sm text-slate-500 max-w-2xl">
+                                    Distinguished organizations, industry chambers, and institutions joining hands to power this program.
+                                </p>
+                            </div>
+
+                            <div
+                                className={`grid ${getPartnerGridClass(
+                                    event.partnerGridColumns,
+                                )} gap-5 sm:gap-6`}>
+                                {event.partners.map((partner) => {
+                                    const cardContent = (
+                                        <div className="h-full bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center text-center justify-between group">
+                                            {/* Kind of Partner Pill */}
+                                            <span className="w-full text-center text-[11px] font-bold text-blue-800 bg-blue-50 group-hover:bg-blue-100 px-3 py-1 rounded-full uppercase tracking-wider transition-colors mb-4 line-clamp-1">
+                                                {partner.category || "Partner"}
+                                            </span>
+
+                                            {/* Logo Container (supports SVG vector and PNG/JPEG crisply) */}
+                                            <div className="w-full h-24 sm:h-28 flex items-center justify-center p-3 mb-3 bg-slate-50/60 rounded-xl border border-slate-100">
+                                                {partner.logo ? (
+                                                    <img
+                                                        src={partner.logo}
+                                                        alt={partner.name}
+                                                        className="max-h-full max-w-full object-contain filter group-hover:scale-105 transition-transform duration-300"
+                                                        loading="lazy"
+                                                        onError={(e) => {
+                                                            (e.currentTarget as HTMLImageElement).src =
+                                                                "/media/resonanceLogoNav.png";
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Building2 className="w-10 h-10 text-slate-300" />
+                                                )}
+                                            </div>
+
+                                            {/* Partner Name */}
+                                            <div className="w-full pt-1">
+                                                <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-900 transition-colors line-clamp-2">
+                                                    {partner.name}
+                                                </h3>
+                                                {partner.websiteUrl && (
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Visit Website <ExternalLink className="w-3 h-3" />
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+
+                                    return partner.websiteUrl ? (
+                                        <a
+                                            key={partner.id}
+                                            href={partner.websiteUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block h-full"
+                                            title={`Visit ${partner.name}`}>
+                                            {cardContent}
+                                        </a>
+                                    ) : (
+                                        <div key={partner.id} className="h-full">
+                                            {cardContent}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Timeline Agenda Section */}
+                    {event.agenda && event.agenda.length > 0 && (
+                        <section className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm space-y-8">
+                            <div className="space-y-1">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-900 text-xs font-bold rounded-full uppercase tracking-wider">
+                                    <Clock className="w-3.5 h-3.5 text-amber-700" />
+                                    <span>Program Schedule</span>
+                                </div>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
+                                    Event Agenda & Timeline
+                                </h2>
+                                <p className="text-xs sm:text-sm text-slate-500">
+                                    Detailed breakdown of keynote sessions, panel interactions, and networking breaks.
+                                </p>
+                            </div>
+
+                            {/* Vertical Timeline */}
+                            <div className="relative border-l-2 border-blue-200/80 ml-3 sm:ml-4 pl-6 sm:pl-8 space-y-8">
+                                {event.agenda.map((item, index) => (
+                                    <div key={item.id || index} className="relative group">
+                                        {/* Timeline Node Icon */}
+                                        <div className="absolute -left-[31px] sm:-left-[39px] top-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white flex items-center justify-center ring-4 ring-white shadow-md group-hover:scale-110 group-hover:bg-orange-500 transition-all duration-300">
+                                            <CalendarCheck className="w-3.5 h-3.5" />
+                                        </div>
+
+                                        <div className="bg-slate-50/70 group-hover:bg-blue-50/50 rounded-2xl p-5 border border-slate-200/80 transition-colors space-y-2">
+                                            {/* Time Badge */}
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900">
+                                                    <Clock className="w-3 h-3 text-blue-600" />
+                                                    {item.time}
+                                                </span>
+                                                {item.speaker && (
+                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                                                        <Users className="w-3 h-3 text-emerald-600" />
+                                                        {item.speaker}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Title */}
+                                            <h3 className="text-base sm:text-lg font-bold text-blue-950 leading-snug">
+                                                {item.title}
+                                            </h3>
+
+                                            {/* Description */}
+                                            {item.description && (
+                                                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                                    {item.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Bottom CTA Card */}
+                    <section className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-3xl p-8 sm:p-12 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="space-y-2 text-center md:text-left max-w-xl">
+                            <span className="px-3 py-1 bg-white/10 text-orange-300 text-xs font-bold rounded-full uppercase tracking-wider">
+                                {past ? "Event Concluded" : "Participation & Registration"}
+                            </span>
+                            <h3 className="text-2xl sm:text-3xl font-bold">
+                                {past ? "Looking for Upcoming Initiatives?" : "Reserve Your Seat for This Event"}
+                            </h3>
+                            <p className="text-xs sm:text-sm text-blue-100 leading-relaxed">
+                                {past
+                                    ? "This event has already taken place. Visit our official events portal to explore upcoming conclaves, workshops, and student entrepreneurship programs."
+                                    : "Connect with industry leaders, domain experts, and peers. Register today to confirm your participation."}
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+                            <EventRegistrationWidget
+                                snippet={event.registrationSnippet}
+                                fallbackUrl={event.registrationUrl}
+                                eventTitle={event.title}
+                                buttonStyle={event.buttonStyle || "gradient"}
+                                isPast={past}
+                            />
+                            <Link to="/events">
+                                <Button
+                                    variant="outline"
+                                    className="rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 text-white border-white/20">
+                                    Browse All Events
+                                </Button>
+                            </Link>
+                        </div>
+                    </section>
+                </div>
+            </main>
+
+            <Footer />
+        </div>
+    );
+};
+
+export default EventDetail;

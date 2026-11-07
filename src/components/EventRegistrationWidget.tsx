@@ -9,6 +9,7 @@ interface EventRegistrationWidgetProps {
     eventTitle?: string;
     className?: string;
     buttonStyle?: WidgetButtonStyle;
+    isPast?: boolean;
 }
 
 /**
@@ -38,6 +39,7 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
     eventTitle,
     className = "",
     buttonStyle = "gradient",
+    isPast = false,
 }) => {
     const rawId = useId().replace(/:/g, "_");
     const widgetId = `event_widget_${rawId}`;
@@ -47,6 +49,7 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
     const { normalizedSnippet } = normalizeSnippet(snippet);
 
     useEffect(() => {
+        if (isPast) return;
         if (!normalizedSnippet || !containerRef.current) {
             setIsScriptReady(false);
             return;
@@ -228,6 +231,17 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
             }
         `;
     };
+
+    if (isPast) {
+        return (
+            <span
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-xs bg-slate-200 text-slate-500 border border-slate-300/80 cursor-not-allowed select-none ${className}`}
+                title="This event has concluded. Registration is closed.">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <span>Registration Closed</span>
+            </span>
+        );
+    }
 
     if (normalizedSnippet) {
         return (

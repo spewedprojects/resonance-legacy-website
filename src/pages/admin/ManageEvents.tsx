@@ -8,7 +8,12 @@ import {
     DEFAULT_EVENTS_CONFIG,
     ResonanceEvent,
     EventsConfig,
+    EventPartner,
+    EventAgendaItem,
     processImageFile,
+    isEventPast,
+    formatEventDisplayDate,
+    formatEventDisplayTime,
 } from "@/lib/siteData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,9 +46,27 @@ import {
     Sparkles,
     CheckCircle2,
     Eye,
+    Building2,
+    CalendarCheck,
+    Users,
 } from "lucide-react";
 import EventRegistrationWidget, { WidgetButtonStyle } from "@/components/EventRegistrationWidget";
 import { toast } from "sonner";
+
+// Normalizes arbitrary date formats (e.g. "March 28, 2026") into "YYYY-MM-DD" for <input type="date" />
+const normalizeToDateInput = (d?: string): string => {
+    if (!d || !d.trim()) return "";
+    const trimmed = d.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    const parsed = new Date(trimmed);
+    if (!isNaN(parsed.getTime())) {
+        const year = parsed.getFullYear();
+        const month = String(parsed.getMonth() + 1).padStart(2, "0");
+        const day = String(parsed.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+    return "";
+};
 
 const ManageEvents: React.FC = () => {
     // Events & Config states
@@ -62,6 +85,8 @@ const ManageEvents: React.FC = () => {
     const [formPurpose, setFormPurpose] = useState("");
     const [formDescription, setFormDescription] = useState("");
     const [formDate, setFormDate] = useState("");
+    const [formStartTime, setFormStartTime] = useState("");
+    const [formEndTime, setFormEndTime] = useState("");
     const [formTime, setFormTime] = useState("");
     const [formVenue, setFormVenue] = useState("");
     const [formCategory, setFormCategory] = useState("Workshop");
@@ -72,6 +97,9 @@ const ManageEvents: React.FC = () => {
     const [formSnippet, setFormSnippet] = useState("");
     const [formRegistrationUrl, setFormRegistrationUrl] = useState("");
     const [formButtonStyle, setFormButtonStyle] = useState<WidgetButtonStyle>("gradient");
+    const [formPartnerGridColumns, setFormPartnerGridColumns] = useState<2 | 3 | 4 | 5>(4);
+    const [formPartners, setFormPartners] = useState<EventPartner[]>([]);
+    const [formAgenda, setFormAgenda] = useState<EventAgendaItem[]>([]);
     const [isUploading, setIsUploading] = useState(false);
 
     // Save portal link setting
@@ -114,7 +142,9 @@ const ManageEvents: React.FC = () => {
         setFormPurpose("");
         setFormDescription("");
         setFormDate("");
-        setFormTime("10:00 AM - 04:00 PM IST");
+        setFormStartTime("09:30");
+        setFormEndTime("17:30");
+        setFormTime("09:30 AM - 05:30 PM IST");
         setFormVenue("Pune, Maharashtra");
         setFormCategory("Workshop");
         setFormStatus("upcoming");
@@ -126,6 +156,9 @@ const ManageEvents: React.FC = () => {
         );
         setFormRegistrationUrl(config.portalUrl);
         setFormButtonStyle("gradient");
+        setFormPartnerGridColumns(4);
+        setFormPartners([]);
+        setFormAgenda([]);
         setIsDialogOpen(true);
     };
 
@@ -135,7 +168,9 @@ const ManageEvents: React.FC = () => {
         setFormSubtitle(event.subtitle || "");
         setFormPurpose(event.purpose || "");
         setFormDescription(event.description);
-        setFormDate(event.date || "");
+        setFormDate(normalizeToDateInput(event.date));
+        setFormStartTime(event.startTime || "");
+        setFormEndTime(event.endTime || "");
         setFormTime(event.time || "");
         setFormVenue(event.venue || "");
         setFormCategory(event.category || "Workshop");
@@ -144,6 +179,9 @@ const ManageEvents: React.FC = () => {
         setFormSnippet(event.registrationSnippet || "");
         setFormRegistrationUrl(event.registrationUrl || "");
         setFormButtonStyle(event.buttonStyle || "gradient");
+        setFormPartnerGridColumns(event.partnerGridColumns || 4);
+        setFormPartners(event.partners ? [...event.partners] : []);
+        setFormAgenda(event.agenda ? [...event.agenda] : []);
         setIsDialogOpen(true);
     };
 
@@ -151,8 +189,8 @@ const ManageEvents: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (!file.type.startsWith("image/")) {
-            toast.error("Please select a valid image file");
+        if (!file.type.startsWith("image/") && !file.name.toLowerCase().endsWith(".svg")) {
+            toast.error("Please select a valid image file (SVG, PNG, JPG, WEBP)");
             return;
         }
 
@@ -170,11 +208,96 @@ const ManageEvents: React.FC = () => {
         }
     };
 
+    // Partner Management
+    const handleAddPartner = () => {
+        const newPartner: EventPartner = {
+            id: `partner-${Date.now()}`,
+            name: "",
+            category: "Industry Partner",
+            logo: "",
+            websiteUrl: "",
+        };
+        setFormPartners([...formPartners, newPartner]);
+    };
+
+    const handleUpdatePartner = (
+        id: string,
+        field: keyof EventPartner,
+        value: string,
+    ) => {
+        setFormPartners(
+            formPartners.map((p) => (p.id === id ? { ...p, [field]: value } : p)),
+        );
+    };
+
+    const handleRemovePartner = (id: string) => {
+        setFormPartners(formPartners.filter((p) => p.id !== id));
+    };
+
+    const handlePartnerLogoUpload = async (
+        partnerId: string,
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const base64 = await processImageFile(file, 600, 0.9);
+            handleUpdatePartner(partnerId, "logo", base64);
+            toast.success("Partner logo uploaded successfully");
+        } catch (err) {
+            toast.error("Failed to process partner logo");
+        } finally {
+            e.target.value = "";
+        }
+    };
+
+    // Agenda Timeline Management
+    const handleAddAgendaItem = () => {
+        const newItem: EventAgendaItem = {
+            id: `agenda-${Date.now()}`,
+            time: "10:00 AM - 11:00 AM",
+            title: "",
+            speaker: "",
+            description: "",
+        };
+        setFormAgenda([...formAgenda, newItem]);
+    };
+
+    const handleUpdateAgendaItem = (
+        id: string,
+        field: keyof EventAgendaItem,
+        value: string,
+    ) => {
+        setFormAgenda(
+            formAgenda.map((a) => (a.id === id ? { ...a, [field]: value } : a)),
+        );
+    };
+
+    const handleRemoveAgendaItem = (id: string) => {
+        setFormAgenda(formAgenda.filter((a) => a.id !== id));
+    };
+
+    const handleMoveAgendaItem = (index: number, direction: "up" | "down") => {
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= formAgenda.length) return;
+        const copy = [...formAgenda];
+        const temp = copy[index];
+        copy[index] = copy[targetIndex];
+        copy[targetIndex] = temp;
+        setFormAgenda(copy);
+    };
+
     const handleSaveEvent = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!formTitle.trim() || !formDescription.trim()) {
             toast.error("Please provide both Event Title and Description");
+            return;
+        }
+
+        if (!formDate.trim()) {
+            toast.error("Please select an Event Date");
             return;
         }
 
@@ -189,7 +312,9 @@ const ManageEvents: React.FC = () => {
                           subtitle: formSubtitle.trim() || undefined,
                           purpose: formPurpose.trim(),
                           description: formDescription.trim(),
-                          date: formDate.trim() || "TBA",
+                          date: formDate.trim(),
+                          startTime: formStartTime.trim() || undefined,
+                          endTime: formEndTime.trim() || undefined,
                           time: formTime.trim() || undefined,
                           venue: formVenue.trim() || "Online",
                           category: formCategory.trim() || "Event",
@@ -198,6 +323,9 @@ const ManageEvents: React.FC = () => {
                           registrationSnippet: formSnippet.trim() || undefined,
                           registrationUrl: formRegistrationUrl.trim() || undefined,
                           buttonStyle: formButtonStyle,
+                          partnerGridColumns: formPartnerGridColumns,
+                          partners: formPartners,
+                          agenda: formAgenda,
                       }
                     : ev,
             );
@@ -209,7 +337,9 @@ const ManageEvents: React.FC = () => {
                 subtitle: formSubtitle.trim() || undefined,
                 purpose: formPurpose.trim(),
                 description: formDescription.trim(),
-                date: formDate.trim() || "TBA",
+                date: formDate.trim(),
+                startTime: formStartTime.trim() || undefined,
+                endTime: formEndTime.trim() || undefined,
                 time: formTime.trim() || undefined,
                 venue: formVenue.trim() || "Online",
                 category: formCategory.trim() || "Event",
@@ -218,6 +348,9 @@ const ManageEvents: React.FC = () => {
                 registrationSnippet: formSnippet.trim() || undefined,
                 registrationUrl: formRegistrationUrl.trim() || undefined,
                 buttonStyle: formButtonStyle,
+                partnerGridColumns: formPartnerGridColumns,
+                partners: formPartners,
+                agenda: formAgenda,
             };
             updated = [newEvent, ...events];
             toast.success(`Created new event "${formTitle.trim()}"`);
@@ -279,104 +412,88 @@ const ManageEvents: React.FC = () => {
                             {events.length} Listed Events
                         </span>
                     </div>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2.5">
-                        <Calendar className="w-8 h-8 text-orange-400" />
-                        Manage Events & Portal Link
-                    </h1>
-                    <p className="text-blue-200 text-sm mt-1 max-w-2xl">
-                        Configure the external events portal destination and create rich event listings with custom HTML registration widgets (ticketing widgets, embed scripts, and custom banners).
+                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                        Events, Conclaves & Initiatives
+                    </h2>
+                    <p className="text-blue-100 text-xs md:text-sm mt-1 max-w-2xl leading-relaxed">
+                        Configure dates, start/end times, ecosystem partners, and timeline agendas for workshops, student entrepreneurship pitch fests, and conclaves.
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <Button
+                        onClick={openAddDialog}
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Add New Event
+                    </Button>
                     <Button
                         onClick={handleResetDefaults}
                         variant="outline"
-                        size="sm"
-                        className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-semibold rounded-xl">
-                        <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                        className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs rounded-xl flex items-center gap-2">
+                        <RotateCcw className="w-3.5 h-3.5" />
                         Reset Defaults
-                    </Button>
-                    <Button
-                        onClick={openAddDialog}
-                        className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-md text-xs sm:text-sm font-semibold rounded-xl">
-                        <Plus className="w-4 h-4 mr-1.5" />
-                        Create New Event
                     </Button>
                 </div>
             </div>
 
-            {/* Portal Link Configuration Card */}
-            <Card className="bg-white rounded-2xl border-slate-200/80 shadow-sm p-6 space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                    <div>
-                        <h3 className="text-base font-bold text-blue-950 flex items-center gap-2">
-                            <ExternalLink className="w-5 h-5 text-blue-600" />
-                            Navbar & Footer "Events" Navigation Behavior
-                        </h3>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-xl">
-                            Choose whether clicking the <strong>"Events"</strong> button in the navigation opens the external portal directly or takes visitors to the website's on-site events showcase.
-                        </p>
-                    </div>
+            {/* Global Events Portal Configuration Card */}
+            <Card className="p-6 bg-white rounded-2xl border-slate-100 shadow-sm">
+                <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-2">
+                            <div className="p-2 bg-blue-50 text-blue-700 rounded-xl">
+                                <LinkIcon className="w-4 h-4" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-blue-950">
+                                    Official External Events Portal Link
+                                </h3>
+                                <p className="text-xs text-slate-500">
+                                    When enabled, clicking &quot;Events&quot; in the navbar opens this destination directly.
+                                </p>
+                            </div>
+                        </div>
 
-                    {/* Switch Control */}
-                    <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl shrink-0">
-                        <Switch
-                            id="portal-switch"
-                            checked={openDirectUrl}
-                            onCheckedChange={handleToggleDirectUrl}
-                        />
-                        <Label
-                            htmlFor="portal-switch"
-                            className="cursor-pointer text-xs font-bold text-slate-800 flex flex-col">
-                            <span>{openDirectUrl ? "Direct External URL" : "On-Site Events Page (/events)"}</span>
-                            <span className="text-[10px] text-slate-400 font-normal">
-                                {openDirectUrl
-                                    ? "Opens external portal directly in a new tab"
-                                    : "Opens /events page on this website"}
+                        {/* Direct Navbar Redirect Toggle */}
+                        <div className="flex items-center gap-3 bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-200/80">
+                            <span className="text-xs font-semibold text-slate-700">
+                                Open Portal from Navbar
                             </span>
-                        </Label>
-                    </div>
-                </div>
-
-                {/* Destination URL Input */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div>
-                        <h4 className="text-xs font-bold text-slate-700">
-                            Destination External Portal URL
-                        </h4>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                            Target address when direct external link is enabled (or featured in the header banner).
-                        </p>
+                            <Switch
+                                checked={openDirectUrl}
+                                onCheckedChange={handleToggleDirectUrl}
+                                className="data-[state=checked]:bg-blue-600"
+                            />
+                        </div>
                     </div>
 
                     <form
-                        onSubmit={(e) => handleSavePortalUrl(e)}
-                        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-lg">
+                        onSubmit={handleSavePortalUrl}
+                        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <div className="relative flex-1">
-                            <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <Input
                                 id="portal-url-input"
                                 name="portalUrl"
                                 type="url"
+                                placeholder="https://events.theresonance.co.in"
                                 value={portalUrlInput}
                                 onChange={(e) => setPortalUrlInput(e.target.value)}
-                                placeholder="https://events.theresonance.co.in"
-                                className="pl-9 rounded-xl text-xs font-mono"
-                                required
+                                className="rounded-xl pl-3 text-xs"
                             />
                         </div>
                         <Button
                             type="submit"
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shrink-0">
-                            Save URL
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold px-5">
+                            Save Portal Link
                         </Button>
                         <a
                             href={config.portalUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-slate-50 transition-colors"
-                            title="Test URL in new tab">
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-blue-700 hover:bg-slate-50 transition-colors">
+                            <span>Test Link</span>
                             <ExternalLink className="w-4 h-4" />
                         </a>
                     </form>
@@ -389,7 +506,7 @@ const ManageEvents: React.FC = () => {
                     <h3 className="text-lg font-bold text-blue-950 flex items-center gap-2">
                         <span>On-Site Events List</span>
                         <span className="text-xs font-semibold text-slate-400">
-                            (Shown on /events)
+                            (Shown on /events and dedicated event pages)
                         </span>
                     </h3>
                     <a
@@ -401,160 +518,199 @@ const ManageEvents: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {events.map((ev, index) => (
-                        <Card
-                            key={ev.id}
-                            className="bg-white rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col justify-between">
-                            <div>
-                                {/* Banner Preview */}
-                                <div className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden">
-                                    <img
-                                        src={ev.bannerImage || "/media/placeholder.png"}
-                                        alt={ev.title}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            (e.currentTarget as HTMLImageElement).src =
-                                                "/media/placeholder.png";
-                                        }}
-                                    />
-                                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                                        <span
-                                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-sm ${
-                                                ev.status === "upcoming"
-                                                    ? "bg-green-600"
-                                                    : ev.status === "ongoing"
-                                                    ? "bg-orange-500"
-                                                    : "bg-slate-600"
-                                            }`}>
-                                            {ev.status}
-                                        </span>
-                                        {ev.category && (
-                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-black/60 text-white backdrop-blur-sm shadow-sm">
-                                                {ev.category}
-                                            </span>
-                                        )}
-                                    </div>
+                    {events.map((ev, index) => {
+                        const past = isEventPast(ev.date, ev.status);
+                        const displayDate = formatEventDisplayDate(ev.date);
+                        const displayTime = formatEventDisplayTime(ev.startTime, ev.endTime, ev.time);
 
-                                    {/* Reorder Buttons */}
-                                    <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm p-1 rounded-lg shadow-sm">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            disabled={index === 0}
-                                            onClick={() => handleMove(index, "up")}
-                                            className="h-6 w-6 p-0 text-slate-700 hover:text-black disabled:opacity-30">
-                                            <ArrowUp className="w-3 h-3" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            disabled={index === events.length - 1}
-                                            onClick={() => handleMove(index, "down")}
-                                            className="h-6 w-6 p-0 text-slate-700 hover:text-black disabled:opacity-30">
-                                            <ArrowDown className="w-3 h-3" />
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <CardContent className="p-5 space-y-3">
-                                    {/* Date & Venue */}
-                                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                                        {ev.date && (
-                                            <span className="flex items-center gap-1 font-semibold text-blue-900">
-                                                <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                                                {ev.date}
-                                            </span>
-                                        )}
-                                        {ev.venue && (
-                                            <span className="flex items-center gap-1 font-medium">
-                                                <MapPin className="w-3.5 h-3.5 text-orange-500" />
-                                                {ev.venue}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <h4 className="text-base font-bold text-blue-950 leading-snug line-clamp-1">
-                                        {ev.title}
-                                    </h4>
-
-                                    {ev.purpose && (
-                                        <div className="p-2.5 bg-orange-50/70 border border-orange-100 rounded-xl text-xs text-slate-700 line-clamp-2">
-                                            <strong className="text-orange-950">Purpose: </strong>
-                                            {ev.purpose}
-                                        </div>
-                                    )}
-
-                                    <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
-                                        {ev.description}
-                                    </p>
-
-                                    {/* Registration Widget Status */}
-                                    <div className="pt-2 flex items-center justify-between text-xs">
-                                        <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
-                                            <Code className="w-3.5 h-3.5 text-indigo-500" />
-                                            {ev.registrationSnippet
-                                                ? "HTML Snippet Active"
-                                                : "Direct URL Button"}
-                                        </span>
-                                        <EventRegistrationWidget
-                                            snippet={ev.registrationSnippet}
-                                            fallbackUrl={ev.registrationUrl}
-                                            eventTitle={ev.title}
+                        return (
+                            <Card
+                                key={ev.id}
+                                className="bg-white rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col justify-between">
+                                <div>
+                                    {/* Banner Preview */}
+                                    <div className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden">
+                                        <img
+                                            src={ev.bannerImage || "/media/placeholder.png"}
+                                            alt={ev.title}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                (e.currentTarget as HTMLImageElement).src =
+                                                    "/media/placeholder.png";
+                                            }}
                                         />
-                                    </div>
-                                </CardContent>
-                            </div>
+                                        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                                            <span
+                                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-sm ${
+                                                    past
+                                                        ? "bg-slate-600"
+                                                        : ev.status === "upcoming"
+                                                        ? "bg-green-600"
+                                                        : ev.status === "ongoing"
+                                                        ? "bg-orange-500"
+                                                        : "bg-slate-600"
+                                                }`}>
+                                                {past ? "Completed / Past" : ev.status}
+                                            </span>
+                                            {ev.category && (
+                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-black/60 text-white backdrop-blur-sm shadow-sm">
+                                                    {ev.category}
+                                                </span>
+                                            )}
+                                        </div>
 
-                            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                                <span className="text-[11px] font-semibold text-slate-400">
-                                    Event #{index + 1}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        onClick={() => openEditDialog(ev)}
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 px-2.5 text-xs text-blue-700 border-blue-200 hover:bg-blue-50 rounded-lg">
-                                        <Pencil className="w-3.5 h-3.5 mr-1" />
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        onClick={() => handleDelete(ev.id, ev.title)}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </Button>
+                                        {/* Reorder Buttons */}
+                                        <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm p-1 rounded-lg shadow-sm">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                disabled={index === 0}
+                                                onClick={() => handleMove(index, "up")}
+                                                className="h-6 w-6 p-0 text-slate-700 hover:text-black disabled:opacity-30">
+                                                <ArrowUp className="w-3 h-3" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                disabled={index === events.length - 1}
+                                                onClick={() => handleMove(index, "down")}
+                                                className="h-6 w-6 p-0 text-slate-700 hover:text-black disabled:opacity-30">
+                                                <ArrowDown className="w-3 h-3" />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <CardContent className="p-5 space-y-3">
+                                        {/* Date, Time & Venue */}
+                                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                                            {displayDate && (
+                                                <span className="flex items-center gap-1 font-semibold text-blue-900">
+                                                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                                                    {displayDate}
+                                                </span>
+                                            )}
+                                            {displayTime && (
+                                                <span className="flex items-center gap-1 font-medium">
+                                                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                                    {displayTime}
+                                                </span>
+                                            )}
+                                            {ev.venue && (
+                                                <span className="flex items-center gap-1 font-medium">
+                                                    <MapPin className="w-3.5 h-3.5 text-orange-500" />
+                                                    {ev.venue}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <h4 className="text-base font-bold text-blue-950 leading-snug line-clamp-1">
+                                            {ev.title}
+                                        </h4>
+
+                                        {ev.purpose && (
+                                            <div className="p-2.5 bg-orange-50/70 border border-orange-100 rounded-xl text-xs text-slate-700 line-clamp-2">
+                                                <strong className="text-orange-950">Purpose: </strong>
+                                                {ev.purpose}
+                                            </div>
+                                        )}
+
+                                        <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
+                                            {ev.description}
+                                        </p>
+
+                                        {/* Partners & Agenda Badges */}
+                                        <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-500">
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-lg font-medium">
+                                                <Building2 className="w-3 h-3 text-blue-600" />
+                                                {ev.partners?.length || 0} Partners ({ev.partnerGridColumns || 4} cols)
+                                            </span>
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 rounded-lg font-medium">
+                                                <CalendarCheck className="w-3 h-3 text-amber-600" />
+                                                {ev.agenda?.length || 0} Agenda Sessions
+                                            </span>
+                                        </div>
+
+                                        {/* Registration Widget Status */}
+                                        <div className="pt-2 flex items-center justify-between text-xs">
+                                            <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                                                <Code className="w-3.5 h-3.5 text-indigo-500" />
+                                                {ev.registrationSnippet
+                                                    ? "HTML Snippet Active"
+                                                    : "Direct URL Button"}
+                                            </span>
+                                            <EventRegistrationWidget
+                                                snippet={ev.registrationSnippet}
+                                                fallbackUrl={ev.registrationUrl}
+                                                eventTitle={ev.title}
+                                                buttonStyle={ev.buttonStyle || "gradient"}
+                                                isPast={past}
+                                            />
+                                        </div>
+                                    </CardContent>
                                 </div>
-                            </div>
-                        </Card>
-                    ))}
+
+                                <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[11px] font-semibold text-slate-400">
+                                            Event #{index + 1}
+                                        </span>
+                                        <a
+                                            href={`/events/${ev.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors">
+                                            <Eye className="w-3 h-3" />
+                                            <span>Preview Page</span>
+                                        </a>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            onClick={() => openEditDialog(ev)}
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 px-2.5 text-xs text-blue-700 border-blue-200 hover:bg-blue-50 rounded-lg">
+                                            <Pencil className="w-3.5 h-3.5 mr-1" />
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleDelete(ev.id, ev.title)}
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg">
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </Card>
+                        );
+                    })}
                 </div>
             </div>
 
-            {/* Create / Edit Event Dialog */}
+            {/* Event Edit / Create Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold text-blue-950 flex items-center gap-2">
                             <Calendar className="w-5 h-5 text-blue-600" />
-                            {editingEvent ? "Edit Event" : "Create New Event"}
+                            <span>{editingEvent ? "Edit Event Details" : "Create New Event"}</span>
                         </DialogTitle>
                     </DialogHeader>
 
-                    <form onSubmit={handleSaveEvent} className="space-y-4 pt-2">
+                    <form onSubmit={handleSaveEvent} className="space-y-5 pt-2">
                         {/* Title & Subtitle */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-3">
                             <div className="space-y-1.5">
                                 <Label htmlFor="ev-title" className="text-xs font-bold text-slate-700">
                                     Event Title *
                                 </Label>
                                 <Input
-                                    id="ev-title" name="title"
-                                    placeholder="e.g. National Apprenticeship Conclave 2026"
+                                    id="ev-title"
+                                    name="title"
+                                    placeholder="e.g. National Apprenticeship & Skill Conclave 2026"
                                     value={formTitle}
                                     onChange={(e) => setFormTitle(e.target.value)}
-                                    className="rounded-xl"
+                                    className="rounded-xl font-medium"
                                     required
                                 />
                             </div>
@@ -563,7 +719,8 @@ const ManageEvents: React.FC = () => {
                                     Event Subtitle / Tagline
                                 </Label>
                                 <Input
-                                    id="ev-sub" name="subtitle"
+                                    id="ev-sub"
+                                    name="subtitle"
                                     placeholder="e.g. Empowering 2000+ apprentices"
                                     value={formSubtitle}
                                     onChange={(e) => setFormSubtitle(e.target.value)}
@@ -572,43 +729,63 @@ const ManageEvents: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Date, Time, Venue */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {/* Date, Time (Start & End), Venue */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                             <div className="space-y-1.5">
-                                <Label htmlFor="ev-date" className="text-xs font-bold text-slate-700">
-                                    Event Date *
+                                <Label htmlFor="ev-date" className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Event Date (Date picker) *</span>
                                 </Label>
                                 <Input
-                                    id="ev-date" name="date"
-                                    placeholder="e.g. March 28, 2026"
+                                    id="ev-date"
+                                    name="date"
+                                    type="date"
                                     value={formDate}
                                     onChange={(e) => setFormDate(e.target.value)}
-                                    className="rounded-xl"
+                                    className="rounded-xl bg-white text-xs font-semibold"
                                     required
                                 />
                             </div>
+
                             <div className="space-y-1.5">
-                                <Label htmlFor="ev-time" className="text-xs font-bold text-slate-700">
-                                    Event Time
+                                <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                                    <span>Event Times (Start - End)</span>
                                 </Label>
-                                <Input
-                                    id="ev-time" name="time"
-                                    placeholder="e.g. 10:00 AM - 05:00 PM IST"
-                                    value={formTime}
-                                    onChange={(e) => setFormTime(e.target.value)}
-                                    className="rounded-xl"
-                                />
+                                <div className="grid grid-cols-2 gap-1.5">
+                                    <Input
+                                        id="ev-start-time"
+                                        name="startTime"
+                                        type="time"
+                                        value={formStartTime}
+                                        onChange={(e) => setFormStartTime(e.target.value)}
+                                        className="rounded-xl bg-white text-xs"
+                                        title="Start Time"
+                                    />
+                                    <Input
+                                        id="ev-end-time"
+                                        name="endTime"
+                                        type="time"
+                                        value={formEndTime}
+                                        onChange={(e) => setFormEndTime(e.target.value)}
+                                        className="rounded-xl bg-white text-xs"
+                                        title="End Time"
+                                    />
+                                </div>
                             </div>
+
                             <div className="space-y-1.5">
-                                <Label htmlFor="ev-venue" className="text-xs font-bold text-slate-700">
-                                    Venue / Location
+                                <Label htmlFor="ev-venue" className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5 text-orange-500" />
+                                    <span>Venue / Location</span>
                                 </Label>
                                 <Input
-                                    id="ev-venue" name="venue"
+                                    id="ev-venue"
+                                    name="venue"
                                     placeholder="e.g. Pune Tech Center / Online"
                                     value={formVenue}
                                     onChange={(e) => setFormVenue(e.target.value)}
-                                    className="rounded-xl"
+                                    className="rounded-xl bg-white text-xs"
                                 />
                             </div>
                         </div>
@@ -620,7 +797,8 @@ const ManageEvents: React.FC = () => {
                                     Category
                                 </Label>
                                 <Input
-                                    id="ev-cat" name="category"
+                                    id="ev-cat"
+                                    name="category"
                                     placeholder="e.g. Workshop, Conclave, Bootcamp"
                                     value={formCategory}
                                     onChange={(e) => setFormCategory(e.target.value)}
@@ -632,7 +810,8 @@ const ManageEvents: React.FC = () => {
                                     Status
                                 </Label>
                                 <select
-                                    id="ev-status" name="status"
+                                    id="ev-status"
+                                    name="status"
                                     value={formStatus}
                                     onChange={(e) =>
                                         setFormStatus(
@@ -657,7 +836,8 @@ const ManageEvents: React.FC = () => {
                                 Event Purpose / Objective *
                             </Label>
                             <Input
-                                id="ev-purpose" name="purpose"
+                                id="ev-purpose"
+                                name="purpose"
                                 placeholder="State the core objective or target outcome of this event..."
                                 value={formPurpose}
                                 onChange={(e) => setFormPurpose(e.target.value)}
@@ -695,7 +875,7 @@ const ManageEvents: React.FC = () => {
                                         id="event-banner-upload"
                                         name="bannerUpload"
                                         type="file"
-                                        accept="image/*"
+                                        accept=".svg,.png,.jpg,.jpeg,.webp,image/*"
                                         onChange={handleBannerUpload}
                                         className="hidden"
                                         disabled={isUploading}
@@ -717,6 +897,308 @@ const ManageEvents: React.FC = () => {
                                         alt="Banner Preview"
                                         className="w-full h-full object-cover"
                                     />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Event Partners Section */}
+                        <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                                <div>
+                                    <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                        <Building2 className="w-4 h-4 text-blue-600" />
+                                        <span>Event Partners & Collaborators</span>
+                                    </h4>
+                                    <p className="text-[11px] text-slate-500">
+                                        Accepts SVG files along with PNG and JPEG. Specify kind of partner text and grid columns.
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1.5">
+                                        <Label className="text-[11px] font-bold text-slate-600">Grid:</Label>
+                                        <select
+                                            value={formPartnerGridColumns}
+                                            onChange={(e) =>
+                                                setFormPartnerGridColumns(
+                                                    Number(e.target.value) as 2 | 3 | 4 | 5,
+                                                )
+                                            }
+                                            className="h-8 px-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold">
+                                            <option value={2}>2 Columns</option>
+                                            <option value={3}>3 Columns</option>
+                                            <option value={4}>4 Columns (Default)</option>
+                                            <option value={5}>5 Columns</option>
+                                        </select>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={handleAddPartner}
+                                        size="sm"
+                                        className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1">
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Add Partner
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {formPartners.length === 0 ? (
+                                <p className="text-xs text-slate-400 italic py-2 text-center">
+                                    No partners added yet. Click &quot;Add Partner&quot; above to list sponsors and collaborators.
+                                </p>
+                            ) : (
+                                <div className="space-y-3 pt-1">
+                                    {formPartners.map((partner, pIdx) => (
+                                        <div
+                                            key={partner.id}
+                                            className="p-3 bg-white rounded-xl border border-slate-200 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                    Partner #{pIdx + 1}
+                                                </span>
+                                                <Button
+                                                    type="button"
+                                                    onClick={() => handleRemovePartner(partner.id)}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700">
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                <div>
+                                                    <Label className="text-[10px] font-semibold text-slate-600">
+                                                        Partner Name *
+                                                    </Label>
+                                                    <Input
+                                                        placeholder="e.g. Tata Motors"
+                                                        value={partner.name}
+                                                        onChange={(e) =>
+                                                            handleUpdatePartner(
+                                                                partner.id,
+                                                                "name",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="h-8 text-xs rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-[10px] font-semibold text-slate-600">
+                                                        Kind of Partner (Badge Text) *
+                                                    </Label>
+                                                    <Input
+                                                        placeholder="e.g. Title Partner, Academic Partner, Industry Partner"
+                                                        value={partner.category}
+                                                        onChange={(e) =>
+                                                            handleUpdatePartner(
+                                                                partner.id,
+                                                                "category",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="h-8 text-xs rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-0.5">
+                                                        <Label className="text-[10px] font-semibold text-slate-600">
+                                                            Partner Logo (SVG / PNG / JPG)
+                                                        </Label>
+                                                        <label className="cursor-pointer text-[10px] font-bold text-blue-600 hover:text-blue-800">
+                                                            Upload SVG/Image
+                                                            <input
+                                                                type="file"
+                                                                accept=".svg,.png,.jpg,.jpeg,.webp,image/*"
+                                                                onChange={(e) =>
+                                                                    handlePartnerLogoUpload(partner.id, e)
+                                                                }
+                                                                className="hidden"
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                    <Input
+                                                        placeholder="URL or /images/..."
+                                                        value={partner.logo}
+                                                        onChange={(e) =>
+                                                            handleUpdatePartner(
+                                                                partner.id,
+                                                                "logo",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="h-8 text-xs rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-[10px] font-semibold text-slate-600">
+                                                        Website URL (Optional)
+                                                    </Label>
+                                                    <Input
+                                                        placeholder="https://..."
+                                                        value={partner.websiteUrl || ""}
+                                                        onChange={(e) =>
+                                                            handleUpdatePartner(
+                                                                partner.id,
+                                                                "websiteUrl",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="h-8 text-xs rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Event Agenda Section (Timeline-like) */}
+                        <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                                <div>
+                                    <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                        <CalendarCheck className="w-4 h-4 text-amber-600" />
+                                        <span>Event Agenda & Timeline</span>
+                                    </h4>
+                                    <p className="text-[11px] text-slate-500">
+                                        Configure session time slots, keynote speakers, and session summaries.
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    onClick={handleAddAgendaItem}
+                                    size="sm"
+                                    className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold flex items-center gap-1">
+                                    <Plus className="w-3.5 h-3.5" />
+                                    Add Session
+                                </Button>
+                            </div>
+
+                            {formAgenda.length === 0 ? (
+                                <p className="text-xs text-slate-400 italic py-2 text-center">
+                                    No agenda items added yet. Click &quot;Add Session&quot; to build the schedule timeline.
+                                </p>
+                            ) : (
+                                <div className="space-y-3 pt-1">
+                                    {formAgenda.map((item, aIdx) => (
+                                        <div
+                                            key={item.id}
+                                            className="p-3 bg-white rounded-xl border border-slate-200 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                                    Session #{aIdx + 1}
+                                                </span>
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        disabled={aIdx === 0}
+                                                        onClick={() => handleMoveAgendaItem(aIdx, "up")}
+                                                        className="h-6 w-6 p-0 text-slate-500 hover:text-black">
+                                                        <ArrowUp className="w-3 h-3" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        disabled={aIdx === formAgenda.length - 1}
+                                                        onClick={() => handleMoveAgendaItem(aIdx, "down")}
+                                                        className="h-6 w-6 p-0 text-slate-500 hover:text-black">
+                                                        <ArrowDown className="w-3 h-3" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={() => handleRemoveAgendaItem(item.id)}
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 ml-1">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                <div>
+                                                    <Label className="text-[10px] font-semibold text-slate-600">
+                                                        Session Time Range *
+                                                    </Label>
+                                                    <Input
+                                                        placeholder="e.g. 09:30 AM - 10:15 AM"
+                                                        value={item.time}
+                                                        onChange={(e) =>
+                                                            handleUpdateAgendaItem(
+                                                                item.id,
+                                                                "time",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="h-8 text-xs rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-[10px] font-semibold text-slate-600">
+                                                        Speaker / Host (Optional)
+                                                    </Label>
+                                                    <Input
+                                                        placeholder="e.g. Dr. Milind Kamble (DICCI)"
+                                                        value={item.speaker || ""}
+                                                        onChange={(e) =>
+                                                            handleUpdateAgendaItem(
+                                                                item.id,
+                                                                "speaker",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="h-8 text-xs rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-[10px] font-semibold text-slate-600">
+                                                    Session Title *
+                                                </Label>
+                                                <Input
+                                                    placeholder="e.g. Inaugural Keynote & Lighting of the Lamp"
+                                                    value={item.title}
+                                                    onChange={(e) =>
+                                                        handleUpdateAgendaItem(
+                                                            item.id,
+                                                            "title",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className="h-8 text-xs rounded-lg font-semibold"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-[10px] font-semibold text-slate-600">
+                                                    Session Description (Optional)
+                                                </Label>
+                                                <Textarea
+                                                    placeholder="Key takeaways, topics discussed, panel topics..."
+                                                    value={item.description || ""}
+                                                    onChange={(e) =>
+                                                        handleUpdateAgendaItem(
+                                                            item.id,
+                                                            "description",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    rows={2}
+                                                    className="text-xs rounded-lg"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -748,7 +1230,8 @@ const ManageEvents: React.FC = () => {
                                     Direct Registration URL (Alternative / Fallback)
                                 </Label>
                                 <Input
-                                    id="ev-reg-url" name="registrationUrl"
+                                    id="ev-reg-url"
+                                    name="registrationUrl"
                                     placeholder="https://..."
                                     value={formRegistrationUrl}
                                     onChange={(e) => setFormRegistrationUrl(e.target.value)}

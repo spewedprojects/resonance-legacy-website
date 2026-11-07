@@ -27,6 +27,7 @@ import ManageGallery from "./pages/admin/ManageGallery";
 import ManageEvents from "./pages/admin/ManageEvents";
 import Enquiries from "./pages/admin/Enquiries";
 import Events from "./pages/Events";
+import EventDetail from "./pages/EventDetail";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => {
                     <Route path="/" element={<Index />} />
                     <Route path="/gallery" element={<Gallery />} />
                     <Route path="/events" element={<Events />} />
+                    <Route path="/events/:id" element={<EventDetail />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/login" element={<Login />} />

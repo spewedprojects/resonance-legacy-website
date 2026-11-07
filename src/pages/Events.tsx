@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -12,11 +13,16 @@ import {
     Layers,
     Share2,
     CheckCircle2,
+    ArrowRight,
+    Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     useSiteEvents,
     useSiteEventsConfig,
+    isEventPast,
+    formatEventDisplayDate,
+    formatEventDisplayTime,
     ResonanceEvent,
 } from "@/lib/siteData";
 import EventRegistrationWidget from "@/components/EventRegistrationWidget";
@@ -36,7 +42,17 @@ const Events: React.FC = () => {
 
     const filteredEvents = events.filter((ev) => {
         if (selectedStatus === "all") return true;
-        return ev.status === selectedStatus;
+        const past = isEventPast(ev.date, ev.status);
+        if (selectedStatus === "completed") {
+            return past || ev.status === "completed";
+        }
+        if (selectedStatus === "upcoming") {
+            return !past && ev.status === "upcoming";
+        }
+        if (selectedStatus === "ongoing") {
+            return !past && ev.status === "ongoing";
+        }
+        return true;
     });
 
     const handleShare = (event: ResonanceEvent) => {
@@ -142,7 +158,12 @@ const Events: React.FC = () => {
                         </div>
                     ) : (
                         <div className="space-y-8">
-                            {filteredEvents.map((ev) => (
+                            {filteredEvents.map((ev) => {
+                                const past = isEventPast(ev.date, ev.status);
+                                const displayDate = formatEventDisplayDate(ev.date);
+                                const displayTime = formatEventDisplayTime(ev.startTime, ev.endTime, ev.time);
+
+                                return (
                                 <div
                                     key={ev.id}
                                     className="bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all border border-slate-100 flex flex-col lg:flex-row">
@@ -161,13 +182,15 @@ const Events: React.FC = () => {
                                         <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                                             <span
                                                 className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider text-white shadow-sm ${
-                                                    ev.status === "upcoming"
+                                                    past
+                                                        ? "bg-slate-600"
+                                                        : ev.status === "upcoming"
                                                         ? "bg-green-600"
                                                         : ev.status === "ongoing"
                                                         ? "bg-orange-500 animate-pulse"
                                                         : "bg-slate-600"
                                                 }`}>
-                                                {ev.status}
+                                                {past ? "Completed / Past" : ev.status}
                                             </span>
                                             {ev.category && (
                                                 <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-black/60 backdrop-blur-sm text-white shadow-sm">
@@ -182,16 +205,16 @@ const Events: React.FC = () => {
                                         <div>
                                             {/* Meta Info (Date, Time, Venue) */}
                                             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 mb-3">
-                                                {ev.date && (
+                                                {displayDate && (
                                                     <span className="flex items-center gap-1.5 font-semibold text-blue-900 bg-blue-50 px-3 py-1 rounded-lg">
                                                         <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                                                        {ev.date}
+                                                        {displayDate}
                                                     </span>
                                                 )}
-                                                {ev.time && (
+                                                {displayTime && (
                                                     <span className="flex items-center gap-1.5 font-medium bg-slate-50 px-2.5 py-1 rounded-lg">
                                                         <Clock className="w-3.5 h-3.5 text-slate-500" />
-                                                        {ev.time}
+                                                        {displayTime}
                                                     </span>
                                                 )}
                                                 {ev.venue && (
@@ -233,16 +256,26 @@ const Events: React.FC = () => {
                                             </p>
                                         </div>
 
-                                        {/* Actions: Registration Button Widget & Share */}
+                                        {/* Actions: Registration Button Widget, View Details & Share */}
                                         <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 mt-auto">
-                                            {/* Registration Widget */}
-                                            <div className="flex items-center gap-3">
+                                            {/* Registration Widget & View Details */}
+                                            <div className="flex flex-wrap items-center gap-3">
                                                 <EventRegistrationWidget
                                                     snippet={ev.registrationSnippet}
                                                     fallbackUrl={ev.registrationUrl}
                                                     eventTitle={ev.title}
                                                     buttonStyle={ev.buttonStyle || "gradient"}
+                                                    isPast={past}
                                                 />
+                                                <Link to={`/events/${ev.id}`}>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="rounded-full text-xs font-bold border-blue-200 text-blue-900 hover:bg-blue-50/80 hover:text-blue-950 flex items-center gap-1.5 px-4 shadow-sm">
+                                                        <span>View Details & Agenda</span>
+                                                        <ArrowRight className="w-3.5 h-3.5 text-blue-600" />
+                                                    </Button>
+                                                </Link>
                                             </div>
 
                                             {/* Share Button */}
@@ -257,7 +290,8 @@ const Events: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </section>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Users, Mail, Phone, History } from "lucide-react";
+import { Users, Mail, Phone } from "lucide-react";
 import { useSiteTeam } from "@/lib/siteData";
 
 interface TeamSectionProps {
@@ -19,7 +19,6 @@ const TeamSection: React.FC<TeamSectionProps> = ({
 }) => {
     const team = useSiteTeam();
     const activeMembers = team.filter((m) => !m.isFormer);
-    const formerMembers = team.filter((m) => m.isFormer);
 
     return (
         <section
@@ -84,61 +83,6 @@ const TeamSection: React.FC<TeamSectionProps> = ({
                         </div>
                     ))}
                 </div>
-
-                {/* Former Members / Past Contributors Section (Greyed out at the bottom) */}
-                {formerMembers.length > 0 && (
-                    <div className="pt-12 border-t border-blue-200/60 space-y-8">
-                        <div className="space-y-2 text-center">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-200/70 text-slate-700 text-xs font-semibold rounded-full uppercase tracking-wider">
-                                <History className="w-3.5 h-3.5 text-slate-500" />
-                                Past Contributors & Alumni
-                            </div>
-                            <h3 className="text-2xl font-bold text-slate-700">
-                                Former Team Members
-                            </h3>
-                            <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">
-                                Acknowledging past team members who contributed to our journey and are no longer part of the organization.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            {formerMembers.map((member, i) => (
-                                <div
-                                    key={member.id || i}
-                                    className="bg-slate-50/80 rounded-2xl p-6 border border-dashed border-slate-300 shadow-sm opacity-75 hover:opacity-100 transition-all text-center flex flex-col items-center group">
-                                    <span className="text-[10px] font-bold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-full mb-3 uppercase tracking-wider">
-                                        Former Member
-                                    </span>
-
-                                    <div className="w-20 h-20 rounded-full mb-3 overflow-hidden bg-slate-200 flex items-center justify-center border-2 border-slate-300 shadow-inner grayscale group-hover:grayscale-0 transition-all duration-300">
-                                        {member.img ? (
-                                            <img
-                                                src={member.img}
-                                                alt={member.name}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    (e.currentTarget as HTMLImageElement).src =
-                                                        "/media/resonanceLogoNav.png";
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                                                <Users className="w-8 h-8 text-slate-400" />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <h4 className="text-base font-bold text-slate-700 mb-1">
-                                        {member.name}
-                                    </h4>
-                                    <p className="text-xs font-medium text-slate-500 mb-4 leading-tight min-h-[2.5rem] flex items-center justify-center">
-                                        {member.position}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
         </section>
     );
