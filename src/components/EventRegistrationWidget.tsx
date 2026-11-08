@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useId } from "react";
-import { ArrowRight, Ticket, Sparkles, ExternalLink, Calendar } from "lucide-react";
+import { ArrowRight, Ticket, Sparkles, Calendar } from "lucide-react";
 
 export type WidgetButtonStyle = "gradient" | "navy" | "glow" | "classic";
 
@@ -21,7 +21,7 @@ function normalizeSnippet(raw?: string): { normalizedSnippet: string } {
     if (!raw || !raw.trim()) return { normalizedSnippet: "" };
     
     // Online safety: ensure https is used for 3rd-party widget scripts to prevent mixed-content blocks
-    let trimmed = raw.trim().replace(/http:\/\/(.+?\.(?:js|css))/gi, "https://$1");
+    const trimmed = raw.trim().replace(/http:\/\/(.+?\.(?:js|css))/gi, "https://$1");
 
     // If it's a script without an enclosing parent div, wrap in a div so document.currentScript.parentElement works
     if (trimmed.includes("<script") && !trimmed.startsWith("<div")) {
@@ -112,7 +112,7 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
             clearInterval(observerInterval);
             try {
                 container.innerHTML = "";
-            } catch (e) {
+            } catch {
                 // Ignore cleanup errors during unmount
             }
         };
