@@ -267,7 +267,7 @@ const Events: React.FC = () => {
                                                     buttonStyle={ev.buttonStyle || "gradient"}
                                                     isPast={past}
                                                 />
-                                                <Link to={`/events/${ev.id}`}>
+                                                <Link to={`/events/${ev.slug || ev.id}`}>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"

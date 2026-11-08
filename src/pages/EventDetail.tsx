@@ -22,6 +22,7 @@ import {
     isEventPast,
     formatEventDisplayDate,
     formatEventDisplayTime,
+    calculateAgendaSchedule,
     ResonanceEvent,
     EventPartnerSection,
 } from "@/lib/siteData";
@@ -39,7 +40,7 @@ const EventDetail: React.FC = () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }, [id]);
 
-    const event = events.find((ev) => ev.id === id);
+    const event = events.find((ev) => ev.slug === id || ev.id === id);
 
     const handleShare = (ev: ResonanceEvent) => {
         if (navigator.share) {
@@ -439,66 +440,92 @@ const EventDetail: React.FC = () => {
                     })}
 
                     {/* Timeline Agenda Section */}
-                    {event.agenda && event.agenda.length > 0 && (
-                        <section className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm space-y-8">
-                            <div className="space-y-1">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-900 text-xs font-bold rounded-full uppercase tracking-wider">
-                                    <Clock className="w-3.5 h-3.5 text-amber-700" />
-                                    <span>Program Schedule</span>
-                                </div>
-                                <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
-                                    Event Agenda & Timeline
-                                </h2>
-                                <p className="text-xs sm:text-sm text-slate-500">
-                                    Detailed breakdown of keynote sessions, panel interactions, and networking breaks.
-                                </p>
-                            </div>
-
-                            {/* Vertical Timeline */}
-                            <div className="relative border-l-2 border-blue-200/80 ml-3 sm:ml-4 pl-6 sm:pl-8 space-y-8">
-                                {event.agenda.map((item, index) => (
-                                    <div key={item.id || index} className="relative group">
-                                        {/* Timeline Node Icon */}
-                                        <div className="absolute -left-[31px] sm:-left-[39px] top-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white flex items-center justify-center ring-4 ring-white shadow-md group-hover:scale-110 group-hover:bg-orange-500 transition-all duration-300">
-                                            <CalendarCheck className="w-3.5 h-3.5" />
-                                        </div>
-
-                                        <div className="bg-slate-50/70 group-hover:bg-blue-50/50 rounded-2xl p-5 border border-slate-200/80 transition-colors space-y-2">
-                                            {/* Time Badge */}
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {item.time && (
-                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900">
-                                                        <Clock className="w-3 h-3 text-blue-600" />
-                                                        {item.time}
-                                                    </span>
-                                                )}
-                                                {item.speaker && (
-                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
-                                                        <Users className="w-3 h-3 text-emerald-600" />
-                                                        {item.speaker}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Title */}
-                                            {item.title && (
-                                                <h3 className="text-base sm:text-lg font-bold text-blue-950 leading-snug">
-                                                    {item.title}
-                                                </h3>
-                                            )}
-
-                                            {/* Description */}
-                                            {item.description && (
-                                                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                                                    {item.description}
-                                                </p>
-                                            )}
-                                        </div>
+                    {event.agenda && event.agenda.length > 0 && (() => {
+                        const scheduledItems = calculateAgendaSchedule(event.startTime, event.agenda);
+                        return (
+                            <section className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm space-y-8">
+                                <div className="space-y-1">
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-900 text-xs font-bold rounded-full uppercase tracking-wider">
+                                        <Clock className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Program Schedule</span>
                                     </div>
-                                ))}
-                            </div>
-                        </section>
-                    )}
+                                    <h2 className="text-2xl sm:text-3xl font-bold text-blue-950">
+                                        Event Agenda & Timeline
+                                    </h2>
+                                    <p className="text-xs sm:text-sm text-slate-500">
+                                        Calculated sequentially from event start time ({event.startTime ? formatEventDisplayTime(event.startTime) : "09:30 AM"}).
+                                    </p>
+                                </div>
+
+                                {/* Vertical Timeline with Left-Side Session Info */}
+                                <div className="space-y-6 sm:space-y-8 pt-2">
+                                    {scheduledItems.map((item, index) => {
+                                        const isLast = index === scheduledItems.length - 1;
+                                        return (
+                                            <div key={item.id || index} className="flex items-start gap-3 sm:gap-6 group">
+                                                {/* Left Side: Session Number & Time (vertically stacked) */}
+                                                <div className="w-24 sm:w-36 md:w-44 shrink-0 text-right pt-0.5 sm:pt-1">
+                                                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-800 border border-blue-200/60 mb-1">
+                                                        Session {item.sessionNumber}
+                                                    </span>
+                                                    <div className="text-xs sm:text-sm font-bold text-slate-900 tabular-nums leading-tight">
+                                                        {item.startTimeStr}
+                                                    </div>
+                                                    <div className="text-[10px] sm:text-xs text-slate-500 font-medium leading-tight">
+                                                        to {item.endTimeStr}
+                                                    </div>
+                                                </div>
+
+                                                {/* Center: Icon with vertical line connecting to next */}
+                                                <div className="relative flex flex-col items-center shrink-0 self-stretch">
+                                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white flex items-center justify-center ring-4 ring-blue-50 shadow-md group-hover:scale-110 group-hover:bg-orange-500 transition-all duration-300 z-10">
+                                                        <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                    </div>
+                                                    {!isLast && (
+                                                        <div className="w-0.5 grow bg-gradient-to-b from-blue-300 via-blue-200 to-slate-200 my-1" />
+                                                    )}
+                                                </div>
+
+                                                {/* Right Side: Card with Session Length in place of time text */}
+                                                <div className="grow pb-2">
+                                                    <div className="bg-slate-50/70 group-hover:bg-blue-50/50 rounded-2xl p-4 sm:p-5 border border-slate-200/80 hover:border-blue-200 shadow-sm transition-all duration-300 space-y-2">
+                                                        {/* Session length & Speaker Pills */}
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            {/* Session length in place of time text */}
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900">
+                                                                <Clock className="w-3 h-3 text-blue-600" />
+                                                                {item.durationLabel}
+                                                            </span>
+                                                            {item.speaker && (
+                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                                                                    <Users className="w-3 h-3 text-emerald-600" />
+                                                                    {item.speaker}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Title */}
+                                                        {item.title && (
+                                                            <h3 className="text-base sm:text-lg font-bold text-blue-950 leading-snug">
+                                                                {item.title}
+                                                            </h3>
+                                                        )}
+
+                                                        {/* Description */}
+                                                        {item.description && (
+                                                            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                                                {item.description}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </section>
+                        );
+                    })()}
 
                     {/* Bottom CTA Card */}
                     <section className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-3xl p-8 sm:p-12 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">

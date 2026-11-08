@@ -134,7 +134,8 @@ export interface EventPeopleSection {
 
 export interface EventAgendaItem {
     id: string;
-    time: string;
+    time?: string;
+    durationMinutes?: number;
     title: string;
     speaker?: string;
     description?: string;
@@ -142,6 +143,7 @@ export interface EventAgendaItem {
 
 export interface ResonanceEvent {
     id: string;
+    slug?: string;
     title: string;
     subtitle?: string;
     purpose?: string;
@@ -575,6 +577,7 @@ export const DEFAULT_EVENTS_CONFIG: EventsConfig = {
 export const DEFAULT_EVENTS: ResonanceEvent[] = [
     {
         id: "event-1",
+        slug: "national-apprenticeship-skill-conclave-2026",
         title: "National Apprenticeship & Skill Conclave 2026",
         subtitle: "Bridging the Academia-Industry Talent Gap through NATS & NAPS Frameworks",
         purpose:
@@ -714,6 +717,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
         agenda: [
             {
                 id: "ag-1",
+                durationMinutes: 45,
                 time: "09:30 AM - 10:15 AM",
                 title: "Inaugural Keynote & Lighting of the Lamp",
                 speaker: "Dr. Milind Kamble (Chairman - DICCI) & Chief Guests",
@@ -722,6 +726,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
             },
             {
                 id: "ag-2",
+                durationMinutes: 75,
                 time: "10:15 AM - 11:30 AM",
                 title: "Panel Discussion: Work-Integrated Degree Apprenticeship (WIDA)",
                 speaker: "Industry HR Directors & Academic Deans",
@@ -730,6 +735,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
             },
             {
                 id: "ag-3",
+                durationMinutes: 90,
                 time: "11:45 AM - 01:15 PM",
                 title: "Corporate Talent Showcase & Onboarding Masterclass",
                 speaker: "Resonance Apprenticeship Advisory Team",
@@ -738,6 +744,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
             },
             {
                 id: "ag-4",
+                durationMinutes: 105,
                 time: "02:00 PM - 03:45 PM",
                 title: "Industry Networking Lounges & MOU Exchange",
                 speaker: "Participating Corporate Delegates",
@@ -746,6 +753,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
             },
             {
                 id: "ag-5",
+                durationMinutes: 90,
                 time: "04:00 PM - 05:30 PM",
                 title: "Valedictory Address & Certificate Distribution",
                 speaker: "Distinguished Guests & resonance Leadership",
@@ -759,6 +767,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
     },
     {
         id: "event-2",
+        slug: "campus-entrepreneurship-venture-pitch-fest",
         title: "Campus Entrepreneurship & Venture Pitch Fest",
         subtitle: "Empowering Next-Gen Student Founders to Build Scalable Enterprises",
         purpose:
@@ -851,6 +860,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
         agenda: [
             {
                 id: "ag-201",
+                durationMinutes: 60,
                 time: "10:00 AM - 11:00 AM",
                 title: "Student Startup Orientation & Pitch Guidelines",
                 speaker: "Resonance Mentorship Cell",
@@ -859,6 +869,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
             },
             {
                 id: "ag-202",
+                durationMinutes: 135,
                 time: "11:15 AM - 01:30 PM",
                 title: "Round 1: Rapid Fire Pitching & Mentoring Booths",
                 speaker: "Angel Investors & Industry Mentors",
@@ -867,6 +878,7 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
             },
             {
                 id: "ag-203",
+                durationMinutes: 120,
                 time: "02:30 PM - 04:30 PM",
                 title: "Grand Finale: Live Seed Grants & Incubation Announcements",
                 speaker: "Jury Panel",
@@ -1712,6 +1724,154 @@ export function formatEventDisplayTime(
         return `From ${formatTime12Hour(startTime)}`;
     }
     return legacyTime || "";
+}
+
+/**
+ * Converts a time string (e.g. "09:30", "14:15", "09:30 AM", "2:00 PM") into minutes from midnight.
+ * Defaults to 570 (09:30 AM) if invalid.
+ */
+export function parseTimeToMinutes(timeStr?: string, defaultMinutes = 570): number {
+    if (!timeStr || !timeStr.trim()) return defaultMinutes;
+    const str = timeStr.trim();
+    
+    // Check 12-hour format with AM/PM e.g. "09:30 AM" or "2:15 PM"
+    const match12 = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (match12) {
+        let h = parseInt(match12[1], 10);
+        const m = parseInt(match12[2], 10);
+        const ampm = match12[3]?.toUpperCase();
+        if (ampm === "PM" && h < 12) h += 12;
+        if (ampm === "AM" && h === 12) h = 0;
+        return h * 60 + m;
+    }
+    
+    // Check 24-hour format e.g. "09:30" or "14:15"
+    const match24 = str.match(/^(\d{1,2}):(\d{2})$/);
+    if (match24) {
+        const h = parseInt(match24[1], 10);
+        const m = parseInt(match24[2], 10);
+        return h * 60 + m;
+    }
+
+    // Try finding time in a range string like "09:30 AM - 10:15 AM"
+    const rangeMatch = str.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (rangeMatch) {
+        let h = parseInt(rangeMatch[1], 10);
+        const m = parseInt(rangeMatch[2], 10);
+        const ampm = rangeMatch[3]?.toUpperCase();
+        if (ampm === "PM" && h < 12) h += 12;
+        if (ampm === "AM" && h === 12) h = 0;
+        return h * 60 + m;
+    }
+
+    return defaultMinutes;
+}
+
+/**
+ * Formats minutes from midnight (e.g. 570) to 12-hour format string (e.g. "09:30 AM").
+ */
+export function formatMinutesToTime12(totalMinutes: number): string {
+    const normalized = ((totalMinutes % 1440) + 1440) % 1440;
+    const h24 = Math.floor(normalized / 60);
+    const m = normalized % 60;
+    const ampm = h24 >= 12 ? "PM" : "AM";
+    const h12 = h24 % 12 || 12;
+    const padH = h12 < 10 ? `0${h12}` : `${h12}`;
+    const padM = m < 10 ? `0${m}` : `${m}`;
+    return `${padH}:${padM} ${ampm}`;
+}
+
+/**
+ * Formats duration in minutes into a human-readable label (e.g. "45 mins", "1 hr", "1 hr 15 mins", "2 hrs").
+ */
+export function formatSessionDuration(minutes?: number): string {
+    const mins = Math.max(1, Math.round(Number(minutes) || 45));
+    if (mins < 60) {
+        return `${mins} mins`;
+    }
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const hLabel = h === 1 ? "1 hr" : `${h} hrs`;
+    if (m === 0) return hLabel;
+    return `${hLabel} ${m} mins`;
+}
+
+/**
+ * Extracts or infers duration in minutes from an agenda item.
+ * If durationMinutes is explicitly set, uses it.
+ * Otherwise, tries to parse duration from a legacy time string (e.g. "09:30 AM - 10:15 AM" -> 45).
+ * Falls back to defaultMinutes (45).
+ */
+export function getAgendaItemDuration(item: EventAgendaItem, defaultMinutes = 45): number {
+    if (typeof item.durationMinutes === "number" && item.durationMinutes > 0) {
+        return item.durationMinutes;
+    }
+    if (item.time && item.time.includes("-")) {
+        const parts = item.time.split("-");
+        const start = parseTimeToMinutes(parts[0], -1);
+        const end = parseTimeToMinutes(parts[1], -1);
+        if (start >= 0 && end > start) {
+            return end - start;
+        }
+    }
+    return defaultMinutes;
+}
+
+export interface CalculatedAgendaItem extends EventAgendaItem {
+    sessionNumber: number;
+    startMinutes: number;
+    endMinutes: number;
+    startTimeStr: string;
+    endTimeStr: string;
+    timeRangeStr: string;
+    durationMinutes: number;
+    durationLabel: string;
+}
+
+/**
+ * Calculates sequential schedule for agenda items starting from the event start time.
+ */
+export function calculateAgendaSchedule(
+    eventStartTime?: string,
+    agenda?: EventAgendaItem[],
+): CalculatedAgendaItem[] {
+    if (!agenda || agenda.length === 0) return [];
+    
+    // Parse starting time
+    const initialStart = parseTimeToMinutes(eventStartTime, 570); // default 09:30 AM
+    let currentMins = initialStart;
+
+    return agenda.map((item, index) => {
+        const duration = getAgendaItemDuration(item, 45);
+        const startMins = currentMins;
+        const endMins = startMins + duration;
+        currentMins = endMins;
+
+        const startTimeStr = formatMinutesToTime12(startMins);
+        const endTimeStr = formatMinutesToTime12(endMins);
+
+        return {
+            ...item,
+            sessionNumber: index + 1,
+            startMinutes: startMins,
+            endMinutes: endMins,
+            startTimeStr,
+            endTimeStr,
+            timeRangeStr: `${startTimeStr} - ${endTimeStr}`,
+            durationMinutes: duration,
+            durationLabel: formatSessionDuration(duration),
+        };
+    });
+}
+
+/**
+ * Generates a clean URL slug from an event title (e.g. "National Skill Conclave 2026" -> "national-skill-conclave-2026")
+ */
+export function generateEventSlug(title: string): string {
+    return title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
 }
 
 // ================= VISITOR ANALYTICS =================

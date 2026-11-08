@@ -25,6 +25,7 @@ import ManagePrograms from "./pages/admin/ManagePrograms";
 import ManageServices from "./pages/admin/ManageServices";
 import ManageGallery from "./pages/admin/ManageGallery";
 import ManageEvents from "./pages/admin/ManageEvents";
+import EventEditor from "./pages/admin/EventEditor";
 import Enquiries from "./pages/admin/Enquiries";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
@@ -74,6 +75,8 @@ const App = () => {
                         <Route path="services" element={<ManageServices />} />
                         <Route path="gallery" element={<ManageGallery />} />
                         <Route path="events" element={<ManageEvents />} />
+                        <Route path="events/new" element={<EventEditor />} />
+                        <Route path="events/edit/:id" element={<EventEditor />} />
                         <Route path="team" element={<ManageTeam />} />
                         <Route path="advisory" element={<ManageAdvisory />} />
                         <Route path="contact" element={<ManageContact />} />

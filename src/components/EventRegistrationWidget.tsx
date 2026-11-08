@@ -116,13 +116,13 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
                 // Ignore cleanup errors during unmount
             }
         };
-    }, [normalizedSnippet]);
+    }, [normalizedSnippet, isPast]);
 
     // Scoped CSS styles to enhance third-party button appearance with modern visuals
     const getOverrideStyles = () => {
         if (buttonStyle === "classic") {
             return `
-                #${widgetId} button, #${widgetId} a {
+                #${widgetId} button, #${widgetId} a, #${widgetId} .reg-button, #${widgetId} input[type="button"], #${widgetId} input[type="submit"] {
                     font-family: inherit !important;
                 }
             `;
@@ -130,10 +130,10 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
 
         if (buttonStyle === "navy") {
             return `
-                #${widgetId} button, #${widgetId} a.btn, #${widgetId} .reg-button {
+                #${widgetId} button, #${widgetId} a, #${widgetId} .reg-button, #${widgetId} input[type="button"], #${widgetId} input[type="submit"] {
                     background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #312e81 100%) !important;
                     color: #ffffff !important;
-                    border: 1px solid rgba(249, 115, 22, 0.6) !important;
+                    border: 1px solid rgba(249, 115, 22, 0.7) !important;
                     border-radius: 9999px !important;
                     font-family: inherit !important;
                     font-weight: 700 !important;
@@ -148,13 +148,18 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
                     cursor: pointer !important;
                     letter-spacing: 0.025em !important;
                     line-height: 1.25 !important;
+                    text-decoration: none !important;
                 }
-                #${widgetId} button:hover, #${widgetId} a.btn:hover, #${widgetId} .reg-button:hover {
+                #${widgetId} button *, #${widgetId} a *, #${widgetId} .reg-button * {
+                    color: #ffffff !important;
+                    font-family: inherit !important;
+                }
+                #${widgetId} button:hover, #${widgetId} a:hover, #${widgetId} .reg-button:hover, #${widgetId} input[type="button"]:hover, #${widgetId} input[type="submit"]:hover {
                     transform: translateY(-2px) scale(1.03) !important;
                     border-color: #f97316 !important;
                     box-shadow: 0 8px 20px 0 rgba(249, 115, 22, 0.35) !important;
                 }
-                #${widgetId} button:active, #${widgetId} a.btn:active, #${widgetId} .reg-button:active {
+                #${widgetId} button:active, #${widgetId} a:active, #${widgetId} .reg-button:active {
                     transform: translateY(0px) scale(0.98) !important;
                 }
                 #${widgetId} img {
@@ -165,9 +170,11 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
 
         if (buttonStyle === "glow") {
             return `
-                #${widgetId} button, #${widgetId} a.btn, #${widgetId} .reg-button {
+                #${widgetId} button, #${widgetId} a, #${widgetId} .reg-button, #${widgetId} input[type="button"], #${widgetId} input[type="submit"] {
                     background: linear-gradient(135deg, #ea580c 0%, #c026d3 50%, #7c3aed 100%) !important;
                     color: #ffffff !important;
+                    border: none !important;
+                    outline: none !important;
                     border-radius: 9999px !important;
                     font-family: inherit !important;
                     font-weight: 700 !important;
@@ -182,12 +189,17 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
                     cursor: pointer !important;
                     letter-spacing: 0.025em !important;
                     line-height: 1.25 !important;
+                    text-decoration: none !important;
                 }
-                #${widgetId} button:hover, #${widgetId} a.btn:hover, #${widgetId} .reg-button:hover {
+                #${widgetId} button *, #${widgetId} a *, #${widgetId} .reg-button * {
+                    color: #ffffff !important;
+                    font-family: inherit !important;
+                }
+                #${widgetId} button:hover, #${widgetId} a:hover, #${widgetId} .reg-button:hover, #${widgetId} input[type="button"]:hover, #${widgetId} input[type="submit"]:hover {
                     transform: translateY(-2px) scale(1.04) !important;
                     box-shadow: 0 0 25px rgba(234, 88, 12, 0.7), 0 8px 20px rgba(192, 38, 211, 0.6) !important;
                 }
-                #${widgetId} button:active, #${widgetId} a.btn:active, #${widgetId} .reg-button:active {
+                #${widgetId} button:active, #${widgetId} a:active, #${widgetId} .reg-button:active {
                     transform: translateY(0px) scale(0.98) !important;
                 }
                 #${widgetId} img {
@@ -198,7 +210,7 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
 
         // Default: 'gradient' (Vibrant Resonance Gradient Pill)
         return `
-            #${widgetId} button, #${widgetId} a.btn, #${widgetId} .reg-button {
+            #${widgetId} button, #${widgetId} a, #${widgetId} .reg-button, #${widgetId} input[type="button"], #${widgetId} input[type="submit"] {
                 background: linear-gradient(135deg, #f97316 0%, #ea580c 45%, #dc2626 100%) !important;
                 color: #ffffff !important;
                 border: none !important;
@@ -217,19 +229,38 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
                 cursor: pointer !important;
                 letter-spacing: 0.025em !important;
                 line-height: 1.25 !important;
+                text-decoration: none !important;
             }
-            #${widgetId} button:hover, #${widgetId} a.btn:hover, #${widgetId} .reg-button:hover {
+            #${widgetId} button *, #${widgetId} a *, #${widgetId} .reg-button * {
+                color: #ffffff !important;
+                font-family: inherit !important;
+            }
+            #${widgetId} button:hover, #${widgetId} a:hover, #${widgetId} .reg-button:hover, #${widgetId} input[type="button"]:hover, #${widgetId} input[type="submit"]:hover {
                 transform: translateY(-2px) scale(1.03) !important;
                 background: linear-gradient(135deg, #fb923c 0%, #ea580c 45%, #b91c1c 100%) !important;
                 box-shadow: 0 8px 22px 0 rgba(234, 88, 12, 0.52) !important;
             }
-            #${widgetId} button:active, #${widgetId} a.btn:active, #${widgetId} .reg-button:active {
+            #${widgetId} button:active, #${widgetId} a:active, #${widgetId} .reg-button:active {
                 transform: translateY(0px) scale(0.98) !important;
             }
             #${widgetId} img {
                 filter: brightness(0) invert(1) !important;
             }
         `;
+    };
+
+    const getFallbackThemeClass = () => {
+        switch (buttonStyle) {
+            case "navy":
+                return "bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 hover:from-blue-950 hover:to-indigo-950 text-white border border-orange-500/70 shadow-md hover:shadow-lg shadow-blue-900/30";
+            case "glow":
+                return "bg-gradient-to-r from-orange-600 via-fuchsia-600 to-purple-600 hover:from-orange-500 hover:to-purple-500 text-white shadow-md hover:shadow-lg shadow-purple-500/40 ring-1 ring-orange-400/50";
+            case "classic":
+                return "bg-slate-800 hover:bg-slate-900 text-white shadow-sm border border-slate-700";
+            case "gradient":
+            default:
+                return "bg-gradient-to-r from-orange-500 via-rose-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-md hover:shadow-lg shadow-orange-500/25";
+        }
     };
 
     if (isPast) {
@@ -275,7 +306,7 @@ const EventRegistrationWidget: React.FC<EventRegistrationWidgetProps> = ({
                 href={fallbackUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-xs bg-gradient-to-r from-orange-500 via-rose-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-300 ${className}`}
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-xs transform hover:scale-105 active:scale-95 transition-all duration-300 ${getFallbackThemeClass()} ${className}`}
                 title={`Register for ${eventTitle || "Event"}`}>
                 <Ticket className="w-3.5 h-3.5" />
                 <span>Register Now</span>
