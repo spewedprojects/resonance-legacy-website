@@ -16,6 +16,7 @@ import {
     KeyRound,
     Eye,
     EyeOff,
+    TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -132,9 +133,11 @@ const AdminSidebar = ({ className, onClose }: SidebarProps) => {
                 </div>
                 {links.map((link) => {
                     const Icon = link.icon;
-                    const isActive =
-                        link.href === "/admin"
-                            ? location.pathname === "/admin"
+                    const isAnalyticsLink = link.href.includes("analytics=open");
+                    const isActive = isAnalyticsLink
+                        ? location.pathname === "/admin" && location.search.includes("analytics=open")
+                        : link.href === "/admin"
+                            ? location.pathname === "/admin" && !location.search.includes("analytics=open")
                             : location.pathname.startsWith(link.href);
 
                     return (

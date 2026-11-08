@@ -18,11 +18,18 @@ export interface TeamMember {
     formerNote?: string | null;
 }
 
+export interface DailyAnalyticsRecord {
+    date: string; // YYYY-MM-DD
+    hits: number;
+    visitors: number;
+}
+
 export interface VisitorStats {
     uniqueVisitors: number;
     totalHits: number;
     todayHits: number;
     lastHitAt: string;
+    dailyHistory?: DailyAnalyticsRecord[];
 }
 
 export interface DeviceSession {
@@ -139,6 +146,7 @@ export interface EventAgendaItem {
     title: string;
     speaker?: string;
     description?: string;
+    isBreak?: boolean;
 }
 
 export interface ResonanceEvent {
@@ -891,11 +899,30 @@ export const DEFAULT_EVENTS: ResonanceEvent[] = [
     },
 ];
 
+function generateFallbackHistory(): DailyAnalyticsRecord[] {
+    const list: DailyAnalyticsRecord[] = [];
+    const now = new Date();
+    const hitSamples = [142, 215, 188, 260, 195, 310, 34];
+    const visitorSamples = [38, 64, 49, 78, 55, 92, 12];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const idx = 6 - i;
+        list.push({
+            date: d.toISOString().split("T")[0],
+            hits: hitSamples[idx] ?? 50,
+            visitors: visitorSamples[idx] ?? 15,
+        });
+    }
+    return list;
+}
+
 export const DEFAULT_VISITOR_STATS: VisitorStats = {
     uniqueVisitors: 428,
     totalHits: 1940,
     todayHits: 34,
     lastHitAt: new Date().toISOString(),
+    dailyHistory: generateFallbackHistory(),
 };
 
 const STORAGE_KEYS = {
@@ -1819,6 +1846,7 @@ export function getAgendaItemDuration(item: EventAgendaItem, defaultMinutes = 45
 
 export interface CalculatedAgendaItem extends EventAgendaItem {
     sessionNumber: number;
+    isBreak: boolean;
     startMinutes: number;
     endMinutes: number;
     startTimeStr: string;
@@ -1840,9 +1868,14 @@ export function calculateAgendaSchedule(
     // Parse starting time
     const initialStart = parseTimeToMinutes(eventStartTime, 570); // default 09:30 AM
     let currentMins = initialStart;
+    let sessionCount = 0;
 
-    return agenda.map((item, index) => {
-        const duration = getAgendaItemDuration(item, 45);
+    return agenda.map((item) => {
+        const isBreak = Boolean(item.isBreak);
+        if (!isBreak) {
+            sessionCount += 1;
+        }
+        const duration = getAgendaItemDuration(item, isBreak ? 30 : 45);
         const startMins = currentMins;
         const endMins = startMins + duration;
         currentMins = endMins;
@@ -1852,7 +1885,8 @@ export function calculateAgendaSchedule(
 
         return {
             ...item,
-            sessionNumber: index + 1,
+            isBreak,
+            sessionNumber: isBreak ? 0 : sessionCount,
             startMinutes: startMins,
             endMinutes: endMins,
             startTimeStr,
@@ -1914,6 +1948,27 @@ export const recordVisitorHit = (): VisitorStats => {
         const lastDate = stats.lastHitAt ? new Date(stats.lastHitAt) : new Date();
         const isSameDay = now.toDateString() === lastDate.toDateString();
 
+        const todayStr = now.toISOString().split("T")[0];
+        const history: DailyAnalyticsRecord[] = Array.isArray(stats.dailyHistory) && stats.dailyHistory.length > 0
+            ? [...stats.dailyHistory]
+            : generateFallbackHistory();
+
+        const todayIdx = history.findIndex((h) => h.date === todayStr);
+        if (todayIdx >= 0) {
+            history[todayIdx] = {
+                date: todayStr,
+                hits: isNewSession ? history[todayIdx].hits + 1 : history[todayIdx].hits,
+                visitors: isUnique ? history[todayIdx].visitors + 1 : history[todayIdx].visitors,
+            };
+        } else {
+            history.push({
+                date: todayStr,
+                hits: isNewSession ? 1 : 0,
+                visitors: isUnique ? 1 : 0,
+            });
+            if (history.length > 30) history.shift();
+        }
+
         const updated: VisitorStats = {
             uniqueVisitors: isUnique ? stats.uniqueVisitors + 1 : stats.uniqueVisitors,
             totalHits: isNewSession ? stats.totalHits + 1 : stats.totalHits,
@@ -1921,6 +1976,7 @@ export const recordVisitorHit = (): VisitorStats => {
                 ? (isNewSession ? stats.todayHits + 1 : stats.todayHits)
                 : 1,
             lastHitAt: now.toISOString(),
+            dailyHistory: history,
         };
 
         if (isUnique || isNewSession) {
@@ -1948,6 +2004,40 @@ export const recordVisitorHit = (): VisitorStats => {
     } catch {
         return DEFAULT_VISITOR_STATS;
     }
+};
+
+/**
+ * Resets unique visitors, total hits, and today's hits back to 0.
+ * Records a clean reset marker in history and notifies all subscribers.
+ */
+export const resetVisitorStats = async (): Promise<VisitorStats> => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const resetStats: VisitorStats = {
+        uniqueVisitors: 0,
+        totalHits: 0,
+        todayHits: 0,
+        lastHitAt: new Date().toISOString(),
+        dailyHistory: [{ date: todayStr, hits: 0, visitors: 0 }],
+    };
+
+    if (typeof window !== "undefined") {
+        localStorage.setItem(STORAGE_KEYS.ANALYTICS, JSON.stringify(resetStats));
+        localStorage.removeItem("resonance_visitor_token");
+        sessionStorage.removeItem("resonance_session_hit");
+        notifyDataChange(STORAGE_KEYS.ANALYTICS);
+        syncToCloud(STORAGE_KEYS.ANALYTICS, resetStats);
+
+        try {
+            await fetch("/api/analytics", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "reset" }),
+            });
+        } catch {
+            // Optional API call
+        }
+    }
+    return resetStats;
 };
 
 export const useSiteVisitorStats = (): VisitorStats => {

@@ -15,6 +15,7 @@ import {
     Building2,
     Briefcase,
     Sparkles,
+    Coffee,
 } from "lucide-react";
 import {
     useSiteEvents,
@@ -50,7 +51,7 @@ const EventDetail: React.FC = () => {
                     text: ev.purpose || ev.description,
                     url: window.location.href,
                 })
-                .catch(() => {});
+                .catch(() => { });
         } else {
             navigator.clipboard.writeText(window.location.href);
             toast.success("Event link copied to clipboard!");
@@ -107,17 +108,17 @@ const EventDetail: React.FC = () => {
         event.partnerSections && event.partnerSections.length > 0
             ? event.partnerSections
             : event.partners && event.partners.length > 0
-            ? [
-                  {
-                      id: "default-partners",
-                      title: "Partners & Collaborators",
-                      subtitle:
-                          "Distinguished organizations, industry chambers, and institutions joining hands to power this program.",
-                      gridColumns: event.partnerGridColumns || 4,
-                      partners: event.partners,
-                  },
-              ]
-            : [];
+                ? [
+                    {
+                        id: "default-partners",
+                        title: "Partners & Collaborators",
+                        subtitle:
+                            "Distinguished organizations, industry chambers, and institutions joining hands to power this program.",
+                        gridColumns: event.partnerGridColumns || 4,
+                        partners: event.partners,
+                    },
+                ]
+                : [];
 
     return (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-between">
@@ -158,13 +159,12 @@ const EventDetail: React.FC = () => {
                                 </span>
                             )}
                             <span
-                                className={`px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-white shadow-sm ${
-                                    past
-                                        ? "bg-slate-600"
-                                        : event.status === "ongoing"
+                                className={`px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-white shadow-sm ${past
+                                    ? "bg-slate-600"
+                                    : event.status === "ongoing"
                                         ? "bg-orange-500 animate-pulse"
                                         : "bg-emerald-600"
-                                }`}>
+                                    }`}>
                                 {past ? "Completed / Concluded" : event.status}
                             </span>
                         </div>
@@ -380,9 +380,8 @@ const EventDetail: React.FC = () => {
                                     )} gap-5 sm:gap-6`}>
                                     {section.partners.map((partner) => {
                                         const cardContent = (
-                                            <div className={`h-full bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center text-center justify-between group ${
-                                                partner.websiteUrl ? "hover:border-blue-300 hover:-translate-y-0.5 cursor-pointer" : ""
-                                            }`}>
+                                            <div className={`h-full bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center text-center justify-between group ${partner.websiteUrl ? "hover:border-blue-300 hover:-translate-y-0.5 cursor-pointer" : ""
+                                                }`}>
                                                 {/* Kind of Partner Pill (if present) */}
                                                 {partner.category ? (
                                                     <span className="w-full text-center text-[11px] font-bold text-blue-800 bg-blue-50 group-hover:bg-blue-100 px-3 py-1 rounded-full uppercase tracking-wider transition-colors mb-4 line-clamp-1">
@@ -410,9 +409,9 @@ const EventDetail: React.FC = () => {
                                                     )}
                                                 </div>
 
-                                                {/* Optional click-through link hint */}
+                                                {/* Optional click-through link hint - only appears on hover */}
                                                 {partner.websiteUrl ? (
-                                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 mt-2 group-hover:text-orange-600 transition-colors">
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 mt-2 opacity-0 group-hover:opacity-100 group-hover:text-orange-600 transition-all duration-200">
                                                         Visit Official Website <ExternalLink className="w-3 h-3" />
                                                     </span>
                                                 ) : (
@@ -464,13 +463,20 @@ const EventDetail: React.FC = () => {
                                 <div className="space-y-6 sm:space-y-8 pt-2">
                                     {scheduledItems.map((item, index) => {
                                         const isLast = index === scheduledItems.length - 1;
+                                        const isBreak = Boolean(item.isBreak);
                                         return (
                                             <div key={item.id || index} className="flex items-start gap-3 sm:gap-6 group">
-                                                {/* Left Side: Session Number & Time (vertically stacked) */}
-                                                <div className="w-24 sm:w-36 md:w-44 shrink-0 text-right pt-0.5 sm:pt-1">
-                                                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-800 border border-blue-200/60 mb-1">
-                                                        Session {item.sessionNumber}
-                                                    </span>
+                                                {/* Left Side: Session Number / Break & Time (vertically stacked) */}
+                                                <div className="w-20 sm:w-24 md:w-28 shrink-0 text-right pt-0.5 sm:pt-1">
+                                                    {isBreak ? (
+                                                        <span className="inline-block px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-slate-200 text-slate-700 border border-slate-300 mb-1">
+                                                            Break
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-block px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-800 border border-blue-200/60 mb-1">
+                                                            Session {item.sessionNumber}
+                                                        </span>
+                                                    )}
                                                     <div className="text-xs sm:text-sm font-bold text-slate-900 tabular-nums leading-tight">
                                                         {item.startTimeStr}
                                                     </div>
@@ -481,26 +487,54 @@ const EventDetail: React.FC = () => {
 
                                                 {/* Center: Icon with vertical line connecting to next */}
                                                 <div className="relative flex flex-col items-center shrink-0 self-stretch">
-                                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white flex items-center justify-center ring-4 ring-blue-50 shadow-md group-hover:scale-110 group-hover:bg-orange-500 transition-all duration-300 z-10">
-                                                        <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full text-white flex items-center justify-center ring-4 shadow-md transition-all duration-300 z-10 ${
+                                                        isBreak
+                                                            ? "bg-slate-600 ring-slate-100 group-hover:scale-105 group-hover:bg-slate-700"
+                                                            : "bg-blue-600 ring-blue-50 group-hover:scale-110 group-hover:bg-orange-500"
+                                                    }`}>
+                                                        {isBreak ? (
+                                                            <Coffee className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                                                        ) : (
+                                                            <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                        )}
                                                     </div>
                                                     {!isLast && (
-                                                        <div className="w-0.5 grow bg-gradient-to-b from-blue-300 via-blue-200 to-slate-200 my-1" />
+                                                        <div className={`w-0.5 grow my-1 ${
+                                                            isBreak
+                                                                ? "bg-gradient-to-b from-slate-300 to-slate-200"
+                                                                : "bg-gradient-to-b from-blue-300 via-blue-200 to-slate-200"
+                                                        }`} />
                                                     )}
                                                 </div>
 
-                                                {/* Right Side: Card with Session Length in place of time text */}
+                                                {/* Right Side: Card with Session Length (Grey bg for breaks, blue tint for regular sessions) */}
                                                 <div className="grow pb-2">
-                                                    <div className="bg-slate-50/70 group-hover:bg-blue-50/50 rounded-2xl p-4 sm:p-5 border border-slate-200/80 hover:border-blue-200 shadow-sm transition-all duration-300 space-y-2">
+                                                    <div className={`rounded-2xl p-4 sm:p-5 border shadow-xs transition-all duration-300 space-y-2 ${
+                                                        isBreak
+                                                            ? "bg-slate-100/90 hover:bg-slate-200/80 border-slate-300/80 text-slate-800"
+                                                            : "bg-slate-50/70 group-hover:bg-blue-50/50 border-slate-200/80 hover:border-blue-200"
+                                                    }`}>
                                                         {/* Session length & Speaker Pills */}
                                                         <div className="flex flex-wrap items-center gap-2">
-                                                            {/* Session length in place of time text */}
-                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900">
-                                                                <Clock className="w-3 h-3 text-blue-600" />
-                                                                {item.durationLabel}
+                                                            {/* Session length */}
+                                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                                                isBreak
+                                                                    ? "bg-slate-200 text-slate-800 border border-slate-300/60"
+                                                                    : "bg-blue-100 text-blue-900"
+                                                            }`}>
+                                                                {isBreak ? (
+                                                                    <Coffee className="w-3 h-3 text-slate-600" />
+                                                                ) : (
+                                                                    <Clock className="w-3 h-3 text-blue-600" />
+                                                                )}
+                                                                <span>{item.durationLabel}</span>
                                                             </span>
                                                             {item.speaker && (
-                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                                                                    isBreak
+                                                                        ? "bg-white/80 text-slate-700 border border-slate-300/60"
+                                                                        : "bg-emerald-50 text-emerald-800 border border-emerald-200/60"
+                                                                }`}>
                                                                     <Users className="w-3 h-3 text-emerald-600" />
                                                                     {item.speaker}
                                                                 </span>
@@ -509,14 +543,18 @@ const EventDetail: React.FC = () => {
 
                                                         {/* Title */}
                                                         {item.title && (
-                                                            <h3 className="text-base sm:text-lg font-bold text-blue-950 leading-snug">
+                                                            <h3 className={`text-base sm:text-lg font-bold leading-snug ${
+                                                                isBreak ? "text-slate-800" : "text-blue-950"
+                                                            }`}>
                                                                 {item.title}
                                                             </h3>
                                                         )}
 
                                                         {/* Description */}
                                                         {item.description && (
-                                                            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                                            <p className={`text-xs sm:text-sm leading-relaxed ${
+                                                                isBreak ? "text-slate-600 font-normal" : "text-slate-600"
+                                                            }`}>
                                                                 {item.description}
                                                             </p>
                                                         )}
