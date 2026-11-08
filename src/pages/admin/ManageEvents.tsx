@@ -38,6 +38,7 @@ import { toast } from "sonner";
 
 const PLACEHOLDER_IMAGE = "/media/placeholder.png";
 const showPlaceholder = (img: HTMLImageElement) => {
+    img.onerror = null;
     img.src = PLACEHOLDER_IMAGE;
 };
 
@@ -237,13 +238,22 @@ const ManageEvents: React.FC = () => {
                             className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col justify-between">
                             <div>
                                 {/* 16:9 Banner Image Header */}
-                                <div className="aspect-video w-full bg-slate-100 relative overflow-hidden group">
-                                    <img
-                                        src={event.bannerImage || PLACEHOLDER_IMAGE}
-                                        alt={event.title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                        onError={(e) => showPlaceholder(e.currentTarget)}
-                                    />
+                                <div className="aspect-video w-full bg-slate-800 relative overflow-hidden group flex items-center justify-center">
+                                    {event.bannerImage ? (
+                                        <img
+                                            src={event.bannerImage}
+                                            alt={event.title}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            onError={(e) => {
+                                                e.currentTarget.onerror = null;
+                                                showPlaceholder(e.currentTarget);
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950 flex items-center justify-center">
+                                            <Calendar className="w-12 h-12 text-blue-400/40" />
+                                        </div>
+                                    )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-between p-4">
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-black/60 text-white backdrop-blur-xs border border-white/20">

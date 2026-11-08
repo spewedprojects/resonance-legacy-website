@@ -231,8 +231,9 @@ const EventDetail: React.FC = () => {
                                 alt={event.title}
                                 className="w-full h-auto max-h-[560px] object-cover sm:object-contain mx-auto block"
                                 onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src =
-                                        "/media/placeholder.png";
+                                    const target = e.currentTarget as HTMLImageElement;
+                                    target.onerror = null;
+                                    target.src = "/media/placeholder.png";
                                 }}
                             />
                         </div>
@@ -379,7 +380,9 @@ const EventDetail: React.FC = () => {
                                     )} gap-5 sm:gap-6`}>
                                     {section.partners.map((partner) => {
                                         const cardContent = (
-                                            <div className="h-full bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center text-center justify-between group">
+                                            <div className={`h-full bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center text-center justify-between group ${
+                                                partner.websiteUrl ? "hover:border-blue-300 hover:-translate-y-0.5 cursor-pointer" : ""
+                                            }`}>
                                                 {/* Kind of Partner Pill (if present) */}
                                                 {partner.category ? (
                                                     <span className="w-full text-center text-[11px] font-bold text-blue-800 bg-blue-50 group-hover:bg-blue-100 px-3 py-1 rounded-full uppercase tracking-wider transition-colors mb-4 line-clamp-1">
@@ -409,7 +412,7 @@ const EventDetail: React.FC = () => {
 
                                                 {/* Optional click-through link hint */}
                                                 {partner.websiteUrl ? (
-                                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 mt-2 group-hover:text-orange-600 transition-colors">
                                                         Visit Official Website <ExternalLink className="w-3 h-3" />
                                                     </span>
                                                 ) : (

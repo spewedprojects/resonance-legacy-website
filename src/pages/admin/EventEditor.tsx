@@ -49,12 +49,15 @@ import {
     Save,
     Copy,
     Check,
+    User,
+    Image as ImageIcon,
 } from "lucide-react";
 import EventRegistrationWidget, { WidgetButtonStyle } from "@/components/EventRegistrationWidget";
 import { toast } from "sonner";
 
 const PLACEHOLDER_IMAGE = "/media/placeholder.png";
 const showPlaceholder = (img: HTMLImageElement) => {
+    img.onerror = null; // Prevent recursive loops
     img.src = PLACEHOLDER_IMAGE;
 };
 
@@ -570,7 +573,7 @@ const EventEditor: React.FC = () => {
             venue: formVenue.trim() || undefined,
             category: formCategory.trim() || undefined,
             status: formStatus,
-            bannerImage: formBannerImage || PLACEHOLDER_IMAGE,
+            bannerImage: formBannerImage?.trim() || "",
             registrationSnippet: formSnippet.trim() || undefined,
             registrationUrl: formRegistrationUrl.trim() || undefined,
             buttonStyle: formButtonStyle,
@@ -951,16 +954,29 @@ const EventEditor: React.FC = () => {
                             </div>
 
                             <div className="flex flex-col md:flex-row gap-4 items-start">
-                                <div className="w-full md:w-72 aspect-video bg-slate-200 rounded-xl overflow-hidden border border-slate-300 shadow-inner relative group shrink-0">
-                                    <img
-                                        src={formBannerImage || PLACEHOLDER_IMAGE}
-                                        alt="Banner Preview"
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => showPlaceholder(e.currentTarget)}
-                                    />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
-                                        16:9 Banner Preview
-                                    </div>
+                                <div className="w-full md:w-72 aspect-video bg-slate-100 rounded-xl overflow-hidden border border-slate-300 shadow-inner relative group shrink-0 flex items-center justify-center">
+                                    {formBannerImage ? (
+                                        <>
+                                            <img
+                                                src={formBannerImage}
+                                                alt="Banner Preview"
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.currentTarget.onerror = null;
+                                                    showPlaceholder(e.currentTarget);
+                                                }}
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
+                                                16:9 Banner Preview
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center text-slate-400 gap-1.5 p-4 text-center select-none">
+                                            <ImageIcon className="w-8 h-8 text-slate-300 stroke-[1.5]" />
+                                            <span className="text-[11px] font-semibold text-slate-500">No banner uploaded</span>
+                                            <span className="text-[10px] text-slate-400">16:9 aspect ratio recommended</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-3 grow w-full">
@@ -1142,13 +1158,20 @@ const EventEditor: React.FC = () => {
                                                                 className="p-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 select-none">
                                                                 <div className="flex items-center gap-3 grow min-w-0">
                                                                     <div className="w-9 h-9 rounded-full p-0.5 bg-gradient-to-tr from-orange-400 to-indigo-500 shrink-0 shadow-xs">
-                                                                        <div className="w-full h-full rounded-full overflow-hidden bg-slate-100">
-                                                                            <img
-                                                                                src={m.photo || PLACEHOLDER_IMAGE}
-                                                                                alt={m.name || "Photo"}
-                                                                                className="w-full h-full object-cover"
-                                                                                onError={(e) => showPlaceholder(e.currentTarget)}
-                                                                            />
+                                                                        <div className="w-full h-full rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
+                                                                            {m.photo ? (
+                                                                                <img
+                                                                                    src={m.photo}
+                                                                                    alt={m.name || "Photo"}
+                                                                                    className="w-full h-full object-cover"
+                                                                                    onError={(e) => {
+                                                                                        e.currentTarget.onerror = null;
+                                                                                        showPlaceholder(e.currentTarget);
+                                                                                    }}
+                                                                                />
+                                                                            ) : (
+                                                                                <User className="w-4 h-4 text-slate-400" />
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                     <div className="min-w-0 grow">
@@ -1405,12 +1428,19 @@ const EventEditor: React.FC = () => {
                                                         className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2.5 shadow-xs flex flex-col justify-between">
                                                         <div className="flex items-start justify-between gap-2">
                                                             <div className="w-16 h-12 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center p-1.5 overflow-hidden shrink-0">
-                                                                <img
-                                                                    src={p.logo || PLACEHOLDER_IMAGE}
-                                                                    alt="Logo"
-                                                                    className="w-full h-full object-contain"
-                                                                    onError={(e) => showPlaceholder(e.currentTarget)}
-                                                                />
+                                                                {p.logo ? (
+                                                                    <img
+                                                                        src={p.logo}
+                                                                        alt="Logo"
+                                                                        className="w-full h-full object-contain"
+                                                                        onError={(e) => {
+                                                                            e.currentTarget.onerror = null;
+                                                                            showPlaceholder(e.currentTarget);
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    <Building2 className="w-6 h-6 text-slate-300 stroke-[1.5]" />
+                                                                )}
                                                             </div>
                                                             <div className="flex items-center gap-1">
                                                                 <Button
@@ -1451,6 +1481,21 @@ const EventEditor: React.FC = () => {
                                                                 value={p.category || ""}
                                                                 onChange={(e) =>
                                                                     handleUpdatePartnerItem(sec.id, p.id, "category", e.target.value)
+                                                                }
+                                                                className="bg-white rounded-lg text-xs h-8"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-1.5">
+                                                            <Label className="text-[11px] font-semibold text-slate-500">
+                                                                Website URL (e.g. https://company.com)
+                                                            </Label>
+                                                            <Input
+                                                                type="url"
+                                                                placeholder="https://company.com"
+                                                                value={p.websiteUrl || ""}
+                                                                onChange={(e) =>
+                                                                    handleUpdatePartnerItem(sec.id, p.id, "websiteUrl", e.target.value)
                                                                 }
                                                                 className="bg-white rounded-lg text-xs h-8"
                                                             />
