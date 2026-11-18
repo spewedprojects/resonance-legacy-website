@@ -152,6 +152,7 @@ export interface EventAgendaItem {
 export interface ResonanceEvent {
     id: string;
     slug?: string;
+    shortSlug?: string;
     title: string;
     subtitle?: string;
     purpose?: string;
@@ -1906,6 +1907,34 @@ export function generateEventSlug(title: string): string {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Sanitizes a user-typed slug/alias while preserving in-progress hyphens during typing.
+ */
+export function sanitizeEventSlug(val: string, trimTrailingHyphens = false): string {
+    const cleaned = val
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+    return trimTrailingHyphens ? cleaned.replace(/^-+|-+$/g, "") : cleaned;
+}
+
+/**
+ * Finds an event by its primary slug, optional short alias slug, or internal id.
+ */
+export function findEventByIdentifier(
+    events: ResonanceEvent[],
+    identifier?: string,
+): ResonanceEvent | undefined {
+    if (!identifier) return undefined;
+    const normalized = identifier.trim().toLowerCase();
+    return events.find(
+        (ev) =>
+            ev.slug?.toLowerCase() === normalized ||
+            ev.shortSlug?.toLowerCase() === normalized ||
+            ev.id === identifier,
+    );
 }
 
 // ================= VISITOR ANALYTICS =================

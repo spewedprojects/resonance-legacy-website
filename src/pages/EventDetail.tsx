@@ -24,6 +24,7 @@ import {
     formatEventDisplayDate,
     formatEventDisplayTime,
     calculateAgendaSchedule,
+    findEventByIdentifier,
     ResonanceEvent,
     EventPartnerSection,
 } from "@/lib/siteData";
@@ -41,7 +42,7 @@ const EventDetail: React.FC = () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }, [id]);
 
-    const event = events.find((ev) => ev.slug === id || ev.id === id);
+    const event = findEventByIdentifier(events, id);
 
     const handleShare = (ev: ResonanceEvent) => {
         if (navigator.share) {

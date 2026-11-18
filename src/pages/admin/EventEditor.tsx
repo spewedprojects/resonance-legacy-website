@@ -16,6 +16,8 @@ import {
     calculateAgendaSchedule,
     formatSessionDuration,
     generateEventSlug,
+    sanitizeEventSlug,
+    findEventByIdentifier,
 } from "@/lib/siteData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,10 +92,12 @@ const EventEditor: React.FC = () => {
     const [activeTab, setActiveTab] = useState<EventEditorTab>("info");
     const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
     const [copiedSlug, setCopiedSlug] = useState(false);
+    const [copiedShortSlug, setCopiedShortSlug] = useState(false);
 
     // Form fields
     const [formTitle, setFormTitle] = useState("");
     const [formSlug, setFormSlug] = useState("");
+    const [formShortSlug, setFormShortSlug] = useState("");
     const [formSubtitle, setFormSubtitle] = useState("");
     const [formPurpose, setFormPurpose] = useState("");
     const [formDescription, setFormDescription] = useState("");
@@ -118,10 +122,11 @@ const EventEditor: React.FC = () => {
     useEffect(() => {
         if (isEditing) {
             const allEvents = getStoredEvents();
-            const found = allEvents.find((ev) => ev.id === id || ev.slug === id);
+            const found = findEventByIdentifier(allEvents, id);
             if (found) {
                 setFormTitle(found.title || "");
                 setFormSlug(found.slug || generateEventSlug(found.title || ""));
+                setFormShortSlug(found.shortSlug || "");
                 setFormSubtitle(found.subtitle || "");
                 setFormPurpose(found.purpose || "");
                 setFormDescription(found.description || "");
@@ -171,6 +176,7 @@ const EventEditor: React.FC = () => {
             // Defaults for new event
             setFormTitle("");
             setFormSlug("");
+            setFormShortSlug("");
             setFormSubtitle("");
             setFormPurpose("");
             setFormDescription("");
@@ -237,11 +243,12 @@ const EventEditor: React.FC = () => {
 
     // Handle Manual Slug change
     const handleSlugChange = (val: string) => {
-        const sanitized = val
-            .toLowerCase()
-            .replace(/\s+/g, "-")
-            .replace(/[^a-z0-9-]/g, "");
-        setFormSlug(sanitized);
+        setFormSlug(sanitizeEventSlug(val));
+    };
+
+    // Handle Short Alias Slug change
+    const handleShortSlugChange = (val: string) => {
+        setFormShortSlug(sanitizeEventSlug(val));
     };
 
     // Banner upload handler
@@ -559,7 +566,11 @@ const EventEditor: React.FC = () => {
             return;
         }
 
-        const effectiveSlug = formSlug.trim() || generateEventSlug(formTitle.trim());
+        const effectiveSlug =
+            sanitizeEventSlug(formSlug, true) || generateEventSlug(formTitle.trim());
+        const cleanedShort = sanitizeEventSlug(formShortSlug, true);
+        const effectiveShortSlug =
+            cleanedShort && cleanedShort !== effectiveSlug ? cleanedShort : undefined;
 
         const flattenedPartners = formPartnerSections.flatMap((s) => s.partners);
         const computedSchedule = calculateAgendaSchedule(formStartTime, formAgenda);
@@ -574,11 +585,30 @@ const EventEditor: React.FC = () => {
         }));
 
         const currentEvents = getStoredEvents();
-        const eventId = isEditing && id ? id : `event-${Date.now()}`;
+        const existingEvent = isEditing ? findEventByIdentifier(currentEvents, id) : undefined;
+        const eventId = existingEvent?.id || (isEditing && id ? id : `event-${Date.now()}`);
+
+        const conflict = currentEvents.find(
+            (ev) =>
+                ev.id !== eventId &&
+                (ev.slug?.toLowerCase() === effectiveSlug ||
+                    ev.shortSlug?.toLowerCase() === effectiveSlug ||
+                    (effectiveShortSlug &&
+                        (ev.slug?.toLowerCase() === effectiveShortSlug ||
+                            ev.shortSlug?.toLowerCase() === effectiveShortSlug))),
+        );
+        if (conflict) {
+            toast.error(
+                `Permalink or short slug is already used by "${conflict.title}". Please choose a unique value.`,
+            );
+            setActiveTab("info");
+            return;
+        }
 
         const updatedEvent: ResonanceEvent = {
             id: eventId,
             slug: effectiveSlug,
+            shortSlug: effectiveShortSlug,
             title: formTitle.trim(),
             subtitle: formSubtitle.trim() || undefined,
             purpose: formPurpose.trim() || undefined,
@@ -602,7 +632,7 @@ const EventEditor: React.FC = () => {
 
         let updatedList: ResonanceEvent[];
         if (isEditing) {
-            updatedList = currentEvents.map((ev) => (ev.id === eventId || ev.slug === eventId ? updatedEvent : ev));
+            updatedList = currentEvents.map((ev) => (ev.id === eventId ? updatedEvent : ev));
             toast.success(`Updated event "${updatedEvent.title}"`);
         } else {
             updatedList = [updatedEvent, ...currentEvents];
@@ -613,13 +643,18 @@ const EventEditor: React.FC = () => {
         navigate("/admin/events");
     };
 
-    const copyPermalink = () => {
-        const slug = formSlug || generateEventSlug(formTitle || "event");
-        const url = `${window.location.origin}/events/${slug}`;
+    const copyEventUrl = (slugToCopy: string, which: "primary" | "short") => {
+        const url = `${window.location.origin}/events/${slugToCopy}`;
         navigator.clipboard.writeText(url);
-        setCopiedSlug(true);
-        toast.success("Event permalink copied to clipboard!");
-        setTimeout(() => setCopiedSlug(false), 2000);
+        if (which === "primary") {
+            setCopiedSlug(true);
+            toast.success("Primary event permalink copied to clipboard!");
+            setTimeout(() => setCopiedSlug(false), 2000);
+        } else {
+            setCopiedShortSlug(true);
+            toast.success("Short alias URL copied to clipboard!");
+            setTimeout(() => setCopiedShortSlug(false), 2000);
+        }
     };
 
     return (
@@ -672,28 +707,52 @@ const EventEditor: React.FC = () => {
             </div>
 
             {/* Permalink Banner */}
-            <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2 text-blue-900">
-                    <LinkIcon className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span className="font-semibold">Public Event URL:</span>
-                    <span className="font-mono bg-white px-2.5 py-1 rounded-lg border border-blue-200 text-blue-800">
-                        /events/
-                        <span className="font-bold text-orange-600">
-                            {formSlug || generateEventSlug(formTitle || "your-event-slug")}
+            <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 flex flex-col gap-2.5 text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 text-blue-900">
+                        <LinkIcon className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span className="font-semibold">Public Event URL:</span>
+                        <span className="font-mono bg-white px-2.5 py-1 rounded-lg border border-blue-200 text-blue-800 break-all">
+                            /events/
+                            <span className="font-bold text-orange-600">
+                                {formSlug || generateEventSlug(formTitle || "your-event-slug")}
+                            </span>
                         </span>
-                    </span>
-                </div>
-                <div className="flex items-center gap-2">
+                    </div>
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={copyPermalink}
-                        className="rounded-xl text-xs h-8 bg-white border-blue-200 text-blue-700 hover:bg-blue-100/50 flex items-center gap-1.5">
+                        onClick={() => copyEventUrl(formSlug || generateEventSlug(formTitle || "event"), "primary")}
+                        className="rounded-xl text-xs h-8 bg-white border-blue-200 text-blue-700 hover:bg-blue-100/50 flex items-center gap-1.5 self-start sm:self-center shrink-0">
                         {copiedSlug ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>{copiedSlug ? "Copied!" : "Copy URL"}</span>
                     </Button>
                 </div>
+
+                {formShortSlug.trim() && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-blue-200/60">
+                        <div className="flex flex-wrap items-center gap-2 text-emerald-950">
+                            <LinkIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span className="font-semibold">Short Alias URL:</span>
+                            <span className="font-mono bg-white px-2.5 py-1 rounded-lg border border-emerald-200 text-emerald-800 break-all">
+                                /events/
+                                <span className="font-bold text-emerald-600">
+                                    {formShortSlug}
+                                </span>
+                            </span>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyEventUrl(formShortSlug.trim(), "short")}
+                            className="rounded-xl text-xs h-8 bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 flex items-center gap-1.5 self-start sm:self-center shrink-0">
+                            {copiedShortSlug ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{copiedShortSlug ? "Copied!" : "Copy Short URL"}</span>
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Horizontal Tabs */}
@@ -810,6 +869,31 @@ const EventEditor: React.FC = () => {
                                         className="rounded-xl font-mono text-xs font-semibold text-blue-900"
                                     />
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5 p-3.5 rounded-2xl bg-emerald-50/50 border border-emerald-200/70">
+                            <Label htmlFor="ev-short-slug" className="text-xs font-bold text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                <span className="flex items-center gap-1.5">
+                                    <LinkIcon className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>Short Permalink / Alias Slug (Optional)</span>
+                                </span>
+                                <span className="text-[11px] font-normal text-emerald-700">
+                                    Keep your circulated primary slug above intact; both URLs open this same event
+                                </span>
+                            </Label>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-mono text-emerald-700 bg-white px-3 py-2 rounded-xl border border-emerald-200 shrink-0">
+                                    /events/
+                                </span>
+                                <Input
+                                    id="ev-short-slug"
+                                    name="shortSlug"
+                                    placeholder="e.g. nasc26 or skill-fest"
+                                    value={formShortSlug}
+                                    onChange={(e) => handleShortSlugChange(e.target.value)}
+                                    className="rounded-xl font-mono text-xs font-semibold text-emerald-900 bg-white border-emerald-200"
+                                />
                             </div>
                         </div>
 
