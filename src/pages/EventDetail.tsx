@@ -211,7 +211,6 @@ const EventDetail: React.FC = () => {
                                 eventTitle={event.title}
                                 buttonStyle={event.buttonStyle || "gradient"}
                                 isPast={past}
-                                className="scale-105 origin-left"
                             />
                             {past && (
                                 <span className="text-xs text-slate-500 font-medium">
