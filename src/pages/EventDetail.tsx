@@ -24,6 +24,8 @@ import {
     formatEventDisplayDate,
     formatEventDisplayTime,
     calculateAgendaSchedule,
+    formatSessionDuration,
+    formatSubItemMarker,
     findEventByIdentifier,
     ResonanceEvent,
     EventPartnerSection,
@@ -445,7 +447,7 @@ const EventDetail: React.FC = () => {
                     {event.agenda && event.agenda.length > 0 && (() => {
                         const scheduledItems = calculateAgendaSchedule(event.startTime, event.agenda);
                         return (
-                            <section className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm space-y-8">
+                            <section className="bg-white rounded-3xl p-5 sm:p-8 border border-slate-100 shadow-sm space-y-5">
                                 <div className="space-y-1">
                                     <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-900 text-xs font-bold rounded-full uppercase tracking-wider">
                                         <Clock className="w-3.5 h-3.5 text-amber-700" />
@@ -460,77 +462,90 @@ const EventDetail: React.FC = () => {
                                 </div>
 
                                 {/* Vertical Timeline with Left-Side Session Info */}
-                                <div className="space-y-6 sm:space-y-8 pt-2">
+                                <div className="pt-1">
                                     {scheduledItems.map((item, index) => {
                                         const isLast = index === scheduledItems.length - 1;
                                         const isBreak = Boolean(item.isBreak);
+                                        const isSpecial = !isBreak && item.sectionType === "special";
+                                        const subItems = (item.subItems || []).filter(
+                                            (sub) => sub.title?.trim() || sub.speaker?.trim(),
+                                        );
                                         return (
-                                            <div key={item.id || index} className="flex items-start gap-3 sm:gap-6 group">
+                                            <div key={item.id || index} className="flex items-stretch gap-3 sm:gap-5 group">
                                                 {/* Left Side: Session Number / Break & Time (vertically stacked) */}
-                                                <div className="w-20 sm:w-24 md:w-28 shrink-0 text-right pt-0.5 sm:pt-1">
-                                                    {isBreak ? (
-                                                        <span className="inline-block px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-slate-200 text-slate-700 border border-slate-300 mb-1">
-                                                            Break
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-block px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-800 border border-blue-200/60 mb-1">
-                                                            Session {item.sessionNumber}
-                                                        </span>
-                                                    )}
+                                                <div className="w-20 sm:w-24 md:w-28 shrink-0 text-right pt-0.5">
+                                                    <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wider border mb-0.5 ${
+                                                        isBreak
+                                                            ? "bg-slate-200 text-slate-700 border-slate-300"
+                                                            : isSpecial
+                                                                ? "bg-amber-50 text-amber-800 border-amber-200/80"
+                                                                : "bg-blue-50 text-blue-800 border-blue-200/60"
+                                                    }`}>
+                                                        {item.badgeLabel}
+                                                    </span>
                                                     <div className="text-xs sm:text-sm font-bold text-slate-900 tabular-nums leading-tight">
                                                         {item.startTimeStr}
                                                     </div>
-                                                    <div className="text-[10px] sm:text-xs text-slate-500 font-medium leading-tight">
+                                                    <div className="text-[10px] sm:text-[11px] text-slate-500 font-medium leading-tight">
                                                         to {item.endTimeStr}
                                                     </div>
                                                 </div>
 
                                                 {/* Center: Icon with vertical line connecting to next */}
-                                                <div className="relative flex flex-col items-center shrink-0 self-stretch">
-                                                    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full text-white flex items-center justify-center ring-4 shadow-md transition-all duration-300 z-10 ${
+                                                <div className="relative flex flex-col items-center shrink-0">
+                                                    <div className={`w-7 h-7 rounded-full text-white flex items-center justify-center ring-4 shadow-sm shrink-0 transition-all duration-300 z-10 ${
                                                         isBreak
                                                             ? "bg-slate-600 ring-slate-100 group-hover:scale-105 group-hover:bg-slate-700"
-                                                            : "bg-blue-600 ring-blue-50 group-hover:scale-110 group-hover:bg-orange-500"
+                                                            : isSpecial
+                                                                ? "bg-amber-500 ring-amber-50 group-hover:scale-105 group-hover:bg-orange-600"
+                                                                : "bg-blue-600 ring-blue-50 group-hover:scale-105 group-hover:bg-orange-500"
                                                     }`}>
                                                         {isBreak ? (
-                                                            <Coffee className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                                                            <Coffee className="w-3.5 h-3.5 text-white" />
+                                                        ) : isSpecial ? (
+                                                            <Sparkles className="w-3.5 h-3.5 text-white" />
                                                         ) : (
-                                                            <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                            <CalendarCheck className="w-3.5 h-3.5" />
                                                         )}
                                                     </div>
                                                     {!isLast && (
                                                         <div className={`w-0.5 grow my-1 ${
                                                             isBreak
                                                                 ? "bg-gradient-to-b from-slate-300 to-slate-200"
-                                                                : "bg-gradient-to-b from-blue-300 via-blue-200 to-slate-200"
+                                                                : isSpecial
+                                                                    ? "bg-gradient-to-b from-amber-300 via-blue-200 to-slate-200"
+                                                                    : "bg-gradient-to-b from-blue-300 via-blue-200 to-slate-200"
                                                         }`} />
                                                     )}
                                                 </div>
 
-                                                {/* Right Side: Card with Session Length (Grey bg for breaks, blue tint for regular sessions) */}
-                                                <div className="grow pb-2">
-                                                    <div className={`rounded-2xl p-4 sm:p-5 border shadow-xs transition-all duration-300 space-y-2 ${
+                                                {/* Right Side: Compact Card with Session Length & Optional Sub-sections */}
+                                                <div className={`grow min-w-0 ${isLast ? "" : "pb-3 sm:pb-4"}`}>
+                                                    <div className={`rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 border shadow-xs transition-all duration-300 space-y-1.5 ${
                                                         isBreak
                                                             ? "bg-slate-100/90 hover:bg-slate-200/80 border-slate-300/80 text-slate-800"
-                                                            : "bg-slate-50/70 group-hover:bg-blue-50/50 border-slate-200/80 hover:border-blue-200"
+                                                            : isSpecial
+                                                                ? "bg-amber-50/35 group-hover:bg-amber-50/70 border-amber-200/70 hover:border-amber-300"
+                                                                : "bg-slate-50/70 group-hover:bg-blue-50/50 border-slate-200/80 hover:border-blue-200"
                                                     }`}>
                                                         {/* Session length & Speaker Pills */}
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            {/* Session length */}
-                                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                                                                 isBreak
                                                                     ? "bg-slate-200 text-slate-800 border border-slate-300/60"
-                                                                    : "bg-blue-100 text-blue-900"
+                                                                    : isSpecial
+                                                                        ? "bg-amber-100 text-amber-900"
+                                                                        : "bg-blue-100 text-blue-900"
                                                             }`}>
                                                                 {isBreak ? (
                                                                     <Coffee className="w-3 h-3 text-slate-600" />
                                                                 ) : (
-                                                                    <Clock className="w-3 h-3 text-blue-600" />
+                                                                    <Clock className={`w-3 h-3 ${isSpecial ? "text-amber-700" : "text-blue-600"}`} />
                                                                 )}
                                                                 <span>{item.durationLabel}</span>
                                                             </span>
                                                             {item.speaker && (
-                                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                                                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                                                                     isBreak
                                                                         ? "bg-white/80 text-slate-700 border border-slate-300/60"
                                                                         : "bg-emerald-50 text-emerald-800 border border-emerald-200/60"
@@ -543,7 +558,7 @@ const EventDetail: React.FC = () => {
 
                                                         {/* Title */}
                                                         {item.title && (
-                                                            <h3 className={`text-base sm:text-lg font-bold leading-snug ${
+                                                            <h3 className={`text-sm sm:text-base font-bold leading-snug ${
                                                                 isBreak ? "text-slate-800" : "text-blue-950"
                                                             }`}>
                                                                 {item.title}
@@ -552,11 +567,53 @@ const EventDetail: React.FC = () => {
 
                                                         {/* Description */}
                                                         {item.description && (
-                                                            <p className={`text-xs sm:text-sm leading-relaxed ${
-                                                                isBreak ? "text-slate-600 font-normal" : "text-slate-600"
-                                                            }`}>
+                                                            <p className="text-xs text-slate-600 leading-relaxed">
                                                                 {item.description}
                                                             </p>
+                                                        )}
+
+                                                        {/* Sub-sections list */}
+                                                        {subItems.length > 0 && (
+                                                            <div className={`mt-1.5 pt-1.5 border-t space-y-0.5 ${
+                                                                isBreak ? "border-slate-300/70" : "border-slate-200/70"
+                                                            }`}>
+                                                                {subItems.map((sub, sIdx) => {
+                                                                    const marker = formatSubItemMarker(sIdx, item.subItemsStyle);
+                                                                    return (
+                                                                        <div
+                                                                            key={sub.id || sIdx}
+                                                                            className="flex flex-wrap sm:flex-nowrap items-baseline justify-between gap-x-3 gap-y-0.5 py-0.5 px-1.5 rounded-lg hover:bg-white/80 transition-colors text-xs">
+                                                                            <div className="flex items-baseline gap-2 min-w-0">
+                                                                                <span className={`shrink-0 font-bold text-[11px] min-w-[14px] ${
+                                                                                    item.subItemsStyle === "bullet" || !item.subItemsStyle
+                                                                                        ? "text-blue-500 text-center"
+                                                                                        : "text-blue-800/80 text-right"
+                                                                                }`}>
+                                                                                    {marker}
+                                                                                </span>
+                                                                                <div className="min-w-0">
+                                                                                    {sub.title && (
+                                                                                        <span className="font-semibold text-slate-800">
+                                                                                            {sub.title}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    {sub.speaker && (
+                                                                                        <span className={`inline-flex items-center gap-1 ${sub.title ? "ml-2" : ""} text-[11px] font-medium text-emerald-800 bg-emerald-50/90 border border-emerald-200/60 px-2 py-0.2 rounded-full align-baseline`}>
+                                                                                            <Users className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                                                                                            <span>{sub.speaker}</span>
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                            {typeof sub.durationMinutes === "number" && sub.durationMinutes > 0 && (
+                                                                                <span className="shrink-0 text-[11px] font-bold text-blue-800 bg-blue-100/70 px-2 py-0.5 rounded-full tabular-nums ml-auto">
+                                                                                    {formatSessionDuration(sub.durationMinutes)}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>

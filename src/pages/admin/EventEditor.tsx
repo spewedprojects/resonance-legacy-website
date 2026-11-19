@@ -12,9 +12,13 @@ import {
     EventPerson,
     EventPeopleSection,
     EventAgendaItem,
+    EventAgendaSubItem,
+    AgendaSectionType,
+    AgendaSubItemStyle,
     processImageFile,
     calculateAgendaSchedule,
     formatSessionDuration,
+    formatSubItemMarker,
     generateEventSlug,
     sanitizeEventSlug,
     findEventByIdentifier,
@@ -54,6 +58,7 @@ import {
     User,
     Image as ImageIcon,
     Coffee,
+    ListOrdered,
 } from "lucide-react";
 import EventRegistrationWidget, { WidgetButtonStyle } from "@/components/EventRegistrationWidget";
 import { toast } from "sonner";
@@ -504,32 +509,48 @@ const EventEditor: React.FC = () => {
     };
 
     // ================= AGENDA HANDLERS =================
-    const handleAddAgendaItem = () => {
-        const newId = `ag-${Date.now()}`;
+    const addAgendaEntry = (type: AgendaSectionType) => {
+        const newId = `ag-${type}-${Date.now()}`;
         const newItem: EventAgendaItem = {
             id: newId,
-            durationMinutes: 45,
-            title: "",
+            durationMinutes: type === "break" ? 30 : type === "special" ? 60 : 45,
+            title:
+                type === "break"
+                    ? "Networking & Refreshments Break"
+                    : type === "special"
+                        ? "Inaugural Session"
+                        : "",
             speaker: "",
-            description: "",
-            isBreak: false,
+            description:
+                type === "break"
+                    ? "Informal networking, tea, and refreshments."
+                    : "",
+            isBreak: type === "break",
+            sectionType: type,
+            sectionLabel: type === "special" ? "Inaugural" : undefined,
+            subItems: [],
+            subItemsStyle: "bullet",
         };
-        setFormAgenda([...formAgenda, newItem]);
+        setFormAgenda((prev) => [...prev, newItem]);
         setExpandedItems((prev) => ({ ...prev, [newId]: true }));
     };
 
-    const handleAddBreakItem = () => {
-        const newId = `ag-break-${Date.now()}`;
-        const newItem: EventAgendaItem = {
-            id: newId,
-            durationMinutes: 30,
-            title: "Networking & Refreshments Break",
-            speaker: "",
-            description: "Informal networking, tea, and refreshments.",
-            isBreak: true,
-        };
-        setFormAgenda([...formAgenda, newItem]);
-        setExpandedItems((prev) => ({ ...prev, [newId]: true }));
+    const setAgendaSectionType = (agId: string, type: AgendaSectionType) => {
+        setFormAgenda((prev) =>
+            prev.map((a) =>
+                a.id === agId
+                    ? {
+                        ...a,
+                        sectionType: type,
+                        isBreak: type === "break",
+                        sectionLabel:
+                            type === "special"
+                                ? (a.sectionLabel || "Inaugural")
+                                : undefined,
+                    }
+                    : a,
+            ),
+        );
     };
 
     const handleUpdateAgendaItem = <K extends keyof EventAgendaItem>(
@@ -537,13 +558,13 @@ const EventEditor: React.FC = () => {
         field: K,
         value: EventAgendaItem[K],
     ) => {
-        setFormAgenda(
-            formAgenda.map((a) => (a.id === agId ? { ...a, [field]: value } : a)),
+        setFormAgenda((prev) =>
+            prev.map((a) => (a.id === agId ? { ...a, [field]: value } : a)),
         );
     };
 
     const handleRemoveAgendaItem = (agId: string) => {
-        setFormAgenda(formAgenda.filter((a) => a.id !== agId));
+        setFormAgenda((prev) => prev.filter((a) => a.id !== agId));
     };
 
     const handleMoveAgendaItem = (index: number, direction: "up" | "down") => {
@@ -554,6 +575,68 @@ const EventEditor: React.FC = () => {
         copy[index] = copy[targetIndex];
         copy[targetIndex] = temp;
         setFormAgenda(copy);
+    };
+
+    const handleAddSubItem = (agId: string) => {
+        const subId = `sub-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const newSub: EventAgendaSubItem = {
+            id: subId,
+            title: "",
+            speaker: "",
+            durationMinutes: undefined,
+        };
+        setFormAgenda((prev) =>
+            prev.map((a) =>
+                a.id === agId
+                    ? { ...a, subItems: [...(a.subItems || []), newSub] }
+                    : a,
+            ),
+        );
+    };
+
+    const handleUpdateSubItem = <K extends keyof EventAgendaSubItem>(
+        agId: string,
+        subId: string,
+        field: K,
+        value: EventAgendaSubItem[K],
+    ) => {
+        setFormAgenda((prev) =>
+            prev.map((a) =>
+                a.id === agId
+                    ? {
+                        ...a,
+                        subItems: (a.subItems || []).map((s) =>
+                            s.id === subId ? { ...s, [field]: value } : s,
+                        ),
+                    }
+                    : a,
+            ),
+        );
+    };
+
+    const handleRemoveSubItem = (agId: string, subId: string) => {
+        setFormAgenda((prev) =>
+            prev.map((a) =>
+                a.id === agId
+                    ? { ...a, subItems: (a.subItems || []).filter((s) => s.id !== subId) }
+                    : a,
+            ),
+        );
+    };
+
+    const handleMoveSubItem = (agId: string, subIndex: number, direction: "up" | "down") => {
+        setFormAgenda((prev) =>
+            prev.map((a) => {
+                if (a.id !== agId) return a;
+                const list = [...(a.subItems || [])];
+                const target = direction === "up" ? subIndex - 1 : subIndex + 1;
+                if (target < 0 || target >= list.length) return a;
+                const tmp = list[subIndex];
+                list[subIndex] = list[target];
+                list[target] = tmp;
+                return { ...a, subItems: list };
+            }),
+        );
     };
 
     // Save event
@@ -574,15 +657,37 @@ const EventEditor: React.FC = () => {
 
         const flattenedPartners = formPartnerSections.flatMap((s) => s.partners);
         const computedSchedule = calculateAgendaSchedule(formStartTime, formAgenda);
-        const finalAgenda: EventAgendaItem[] = computedSchedule.map((s) => ({
-            id: s.id,
-            durationMinutes: s.durationMinutes,
-            time: s.timeRangeStr,
-            title: s.title,
-            speaker: s.speaker,
-            description: s.description,
-            isBreak: s.isBreak,
-        }));
+        const finalAgenda: EventAgendaItem[] = computedSchedule.map((s) => {
+            const cleanSubItems = (s.subItems || [])
+                .map((sub) => ({
+                    id: sub.id,
+                    title: sub.title.trim(),
+                    speaker: sub.speaker?.trim() || undefined,
+                    durationMinutes:
+                        typeof sub.durationMinutes === "number" && sub.durationMinutes > 0
+                            ? sub.durationMinutes
+                            : undefined,
+                }))
+                .filter((sub) => sub.title || sub.speaker);
+
+            return {
+                id: s.id,
+                durationMinutes: s.durationMinutes,
+                time: s.timeRangeStr,
+                title: s.title,
+                speaker: s.speaker,
+                description: s.description,
+                isBreak: s.isBreak,
+                sectionType: s.sectionType,
+                sectionLabel:
+                    s.sectionType === "special"
+                        ? s.sectionLabel?.trim() || "Special Session"
+                        : undefined,
+                subItems: cleanSubItems.length > 0 ? cleanSubItems : undefined,
+                subItemsStyle:
+                    cleanSubItems.length > 0 ? s.subItemsStyle || "bullet" : undefined,
+            };
+        });
 
         const currentEvents = getStoredEvents();
         const existingEvent = isEditing ? findEventByIdentifier(currentEvents, id) : undefined;
@@ -1644,20 +1749,27 @@ const EventEditor: React.FC = () => {
                                         <span>Sequential Agenda Engine</span>
                                     </h3>
                                     <p className="text-xs text-amber-800/80">
-                                        Start time is taken from Event Start Time (<strong>{formStartTime || "09:30"}</strong>). Enter only the session length in minutes — exact start and end times are auto-calculated sequentially!
+                                        Start time is taken from Event Start Time (<strong>{formStartTime || "09:30"}</strong>). Enter only the session length in minutes — exact start and end times are auto-calculated sequentially! You can also break any session into sub-sections.
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex flex-wrap items-center gap-2 shrink-0">
                                     <Button
                                         type="button"
-                                        onClick={handleAddBreakItem}
+                                        onClick={() => addAgendaEntry("break")}
                                         className="rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5">
                                         <Coffee className="w-3.5 h-3.5" />
                                         <span>Add a Break</span>
                                     </Button>
                                     <Button
                                         type="button"
-                                        onClick={handleAddAgendaItem}
+                                        onClick={() => addAgendaEntry("special")}
+                                        className="rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs font-semibold shadow-xs flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Add Special / Inaugural</span>
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        onClick={() => addAgendaEntry("session")}
                                         className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5">
                                         <Plus className="w-3.5 h-3.5" />
                                         <span>Add Agenda Session</span>
@@ -1668,7 +1780,7 @@ const EventEditor: React.FC = () => {
                             <div className="flex items-center gap-4 text-xs font-semibold text-amber-900 pt-1 border-t border-amber-200/60">
                                 <span>Event Starts: {formStartTime || "09:30"}</span>
                                 <span>•</span>
-                                <span>Total Sessions: {formAgenda.length}</span>
+                                <span>Total Blocks: {formAgenda.length}</span>
                                 <span>•</span>
                                 <span>Total Scheduled Duration: {formatSessionDuration(totalAgendaMinutes)}</span>
                             </div>
@@ -1678,13 +1790,22 @@ const EventEditor: React.FC = () => {
                             <div className="text-center py-12 px-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 space-y-3">
                                 <Clock className="w-10 h-10 text-slate-400 mx-auto" />
                                 <div className="text-sm font-semibold text-slate-700">No agenda sessions scheduled yet</div>
-                                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                                    Add sessions with a duration in minutes. The timeline will auto-calculate exact start and end times.
+                                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                                    Start with an Inaugural / Special block or regular Agenda Sessions. Each session can contain detailed sub-sections, speakers, and individual timings.
                                 </p>
-                                <div className="flex items-center justify-center gap-2">
+                                <div className="flex flex-wrap items-center justify-center gap-2">
                                     <Button
                                         type="button"
-                                        onClick={handleAddAgendaItem}
+                                        onClick={() => addAgendaEntry("special")}
+                                        variant="outline"
+                                        size="sm"
+                                        className="rounded-xl text-xs font-semibold text-amber-800 border-amber-300 bg-amber-50 hover:bg-amber-100">
+                                        <Sparkles className="w-3.5 h-3.5 mr-1" />
+                                        Add Inaugural / Special
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        onClick={() => addAgendaEntry("session")}
                                         variant="outline"
                                         size="sm"
                                         className="rounded-xl text-xs font-semibold text-amber-600 border-amber-200 hover:bg-amber-50">
@@ -1693,7 +1814,7 @@ const EventEditor: React.FC = () => {
                                     </Button>
                                     <Button
                                         type="button"
-                                        onClick={handleAddBreakItem}
+                                        onClick={() => addAgendaEntry("break")}
                                         variant="outline"
                                         size="sm"
                                         className="rounded-xl text-xs font-semibold text-slate-700 border-slate-300 hover:bg-slate-100">
@@ -1703,36 +1824,44 @@ const EventEditor: React.FC = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 {liveSchedule.map((item, idx) => {
                                     const isExpanded = expandedItems[item.id] ?? false;
                                     const isBreak = Boolean(item.isBreak);
+                                    const isSpecial = !isBreak && item.sectionType === "special";
+                                    const subItems = item.subItems || [];
+                                    const subMinutesSum = subItems.reduce(
+                                        (sum, sub) => sum + (Number(sub.durationMinutes) > 0 ? Number(sub.durationMinutes) : 0),
+                                        0,
+                                    );
                                     return (
                                         <div
                                             key={item.id}
                                             className={`rounded-xl border overflow-hidden shadow-xs ${
-                                                isBreak ? "bg-slate-50/90 border-slate-300" : "bg-white border-slate-200"
+                                                isBreak
+                                                    ? "bg-slate-50/90 border-slate-300"
+                                                    : isSpecial
+                                                        ? "bg-amber-50/20 border-amber-200"
+                                                        : "bg-white border-slate-200"
                                             }`}>
                                             {/* Compact Header Bar */}
                                             <div
                                                 onClick={() => toggleExpanded(item.id)}
-                                                className="p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 select-none">
+                                                className="p-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 select-none">
                                                 <div className="flex items-center gap-3 grow min-w-0">
-                                                    <div className={`flex flex-col items-center justify-center px-2.5 py-1 rounded-lg shrink-0 ${
+                                                    <div className={`flex flex-col items-center justify-center px-2.5 py-1 rounded-lg shrink-0 min-w-[78px] ${
                                                         isBreak
                                                             ? "bg-slate-200 border border-slate-300 text-slate-800"
-                                                            : "bg-amber-50 border border-amber-200/80 text-amber-900"
+                                                            : isSpecial
+                                                                ? "bg-amber-100 border border-amber-300 text-amber-950"
+                                                                : "bg-amber-50 border border-amber-200/80 text-amber-900"
                                                     }`}>
                                                         <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
                                                             isBreak ? "text-slate-600" : "text-amber-700"
                                                         }`}>
-                                                            {isBreak ? (
-                                                                <>
-                                                                    <Coffee className="w-2.5 h-2.5" /> Break
-                                                                </>
-                                                            ) : (
-                                                                `Session ${item.sessionNumber}`
-                                                            )}
+                                                            {isBreak && <Coffee className="w-2.5 h-2.5" />}
+                                                            {isSpecial && <Sparkles className="w-2.5 h-2.5" />}
+                                                            <span>{item.badgeLabel}</span>
                                                         </span>
                                                         <span className="text-xs font-mono font-bold">
                                                             {item.startTimeStr}
@@ -1740,11 +1869,17 @@ const EventEditor: React.FC = () => {
                                                     </div>
 
                                                     <div className="min-w-0 grow">
-                                                        <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-2">
+                                                        <div className="text-xs font-bold text-slate-900 truncate flex flex-wrap items-center gap-2">
                                                             <span>{item.title || <span className="text-slate-400 italic">Untitled {isBreak ? "Break" : "Session"}</span>}</span>
                                                             {isBreak && (
                                                                 <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded font-semibold">
                                                                     Grey BG
+                                                                </span>
+                                                            )}
+                                                            {subItems.length > 0 && (
+                                                                <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200/70 px-1.5 py-0.2 rounded-md font-semibold flex items-center gap-1">
+                                                                    <ListOrdered className="w-2.5 h-2.5" />
+                                                                    {subItems.length} sub-section{subItems.length > 1 ? "s" : ""}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -1798,16 +1933,16 @@ const EventEditor: React.FC = () => {
                                             {/* Expanded Edit Form */}
                                             {isExpanded && (
                                                 <div className="p-4 pt-2 border-t border-slate-100 bg-slate-50/50 space-y-3">
-                                                    {/* Type Toggle: Session vs Break */}
+                                                    {/* 3-Way Type Toggle: Session vs Special vs Break */}
                                                     <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex flex-wrap items-center gap-2">
                                                             <span className="text-[11px] font-semibold text-slate-500">Item Type:</span>
                                                             <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 text-xs">
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => handleUpdateAgendaItem(item.id, "isBreak", false)}
+                                                                    onClick={() => setAgendaSectionType(item.id, "session")}
                                                                     className={`px-2.5 py-1 rounded-md font-semibold text-xs transition-all ${
-                                                                        !item.isBreak
+                                                                        item.sectionType === "session"
                                                                             ? "bg-white text-blue-900 shadow-xs border border-slate-200"
                                                                             : "text-slate-600 hover:text-slate-900"
                                                                     }`}>
@@ -1815,9 +1950,20 @@ const EventEditor: React.FC = () => {
                                                                 </button>
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => handleUpdateAgendaItem(item.id, "isBreak", true)}
+                                                                    onClick={() => setAgendaSectionType(item.id, "special")}
                                                                     className={`px-2.5 py-1 rounded-md font-semibold text-xs flex items-center gap-1 transition-all ${
-                                                                        item.isBreak
+                                                                        item.sectionType === "special"
+                                                                            ? "bg-amber-600 text-white shadow-xs"
+                                                                            : "text-slate-600 hover:text-slate-900"
+                                                                    }`}>
+                                                                    <Sparkles className="w-3 h-3" />
+                                                                    Special (e.g. Inaugural)
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setAgendaSectionType(item.id, "break")}
+                                                                    className={`px-2.5 py-1 rounded-md font-semibold text-xs flex items-center gap-1 transition-all ${
+                                                                        item.sectionType === "break"
                                                                             ? "bg-slate-700 text-white shadow-xs"
                                                                             : "text-slate-600 hover:text-slate-900"
                                                                     }`}>
@@ -1826,17 +1972,19 @@ const EventEditor: React.FC = () => {
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                        {item.isBreak && (
-                                                            <span className="text-[11px] text-slate-500 font-medium">
-                                                                Renders with a neutral grey background on the timeline
-                                                            </span>
-                                                        )}
+                                                        <span className="text-[11px] text-slate-500 font-medium">
+                                                            {isBreak
+                                                                ? "Renders with a neutral grey background"
+                                                                : isSpecial
+                                                                    ? "Uses custom badge without incrementing Session #"
+                                                                    : "Auto-numbered sequentially"}
+                                                        </span>
                                                     </div>
 
-                                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                                                        <div className="space-y-1">
-                                                            <Label className={`text-[11px] font-bold ${item.isBreak ? "text-slate-700" : "text-amber-800"}`}>
-                                                                {item.isBreak ? "Break Duration (Mins) *" : "Session Length (Mins) *"}
+                                                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                                                        <div className="sm:col-span-3 space-y-1">
+                                                            <Label className={`text-[11px] font-bold ${isBreak ? "text-slate-700" : "text-amber-800"}`}>
+                                                                {isBreak ? "Break Duration (Mins) *" : "Session Length (Mins) *"}
                                                             </Label>
                                                             <Input
                                                                 type="number"
@@ -1852,7 +2000,7 @@ const EventEditor: React.FC = () => {
                                                                     )
                                                                 }
                                                                 className={`bg-white rounded-xl text-xs h-9 font-bold ${
-                                                                    item.isBreak ? "text-slate-800" : "text-amber-900"
+                                                                    isBreak ? "text-slate-800" : "text-amber-900"
                                                                 }`}
                                                             />
                                                             <span className="text-[10px] text-slate-400">
@@ -1860,12 +2008,28 @@ const EventEditor: React.FC = () => {
                                                             </span>
                                                         </div>
 
-                                                        <div className="sm:col-span-3 space-y-1">
+                                                        {isSpecial && (
+                                                            <div className="sm:col-span-3 space-y-1">
+                                                                <Label className="text-[11px] font-bold text-amber-800">
+                                                                    Left Badge Label
+                                                                </Label>
+                                                                <Input
+                                                                    placeholder="e.g. Inaugural / Keynote"
+                                                                    value={item.sectionLabel || ""}
+                                                                    onChange={(e) =>
+                                                                        handleUpdateAgendaItem(item.id, "sectionLabel", e.target.value)
+                                                                    }
+                                                                    className="bg-white rounded-xl text-xs h-9 font-semibold"
+                                                                />
+                                                            </div>
+                                                        )}
+
+                                                        <div className={`${isSpecial ? "sm:col-span-6" : "sm:col-span-9"} space-y-1`}>
                                                             <Label className="text-[11px] font-semibold text-slate-700">
-                                                                {item.isBreak ? "Break Title *" : "Session Title *"}
+                                                                {isBreak ? "Break Title *" : "Session Title *"}
                                                             </Label>
                                                             <Input
-                                                                placeholder={item.isBreak ? "e.g. Lunch & Networking Break / High Tea" : "e.g. Inaugural Keynote & Lighting of the Lamp"}
+                                                                placeholder={isBreak ? "e.g. Lunch & Networking Break / High Tea" : "e.g. Inaugural Session / CSR & Future Workforce"}
                                                                 value={item.title}
                                                                 onChange={(e) =>
                                                                     handleUpdateAgendaItem(item.id, "title", e.target.value)
@@ -1875,34 +2039,184 @@ const EventEditor: React.FC = () => {
                                                         </div>
                                                     </div>
 
-                                                    <div className="space-y-1">
-                                                        <Label className="text-[11px] font-semibold text-slate-700">
-                                                            Speaker / Facilitator / Host {item.isBreak ? "(Optional)" : ""}
-                                                        </Label>
-                                                        <Input
-                                                            placeholder="e.g. Dr. Milind Kamble & Guest Dignitaries"
-                                                            value={item.speaker || ""}
-                                                            onChange={(e) =>
-                                                                handleUpdateAgendaItem(item.id, "speaker", e.target.value)
-                                                            }
-                                                            className="bg-white rounded-xl text-xs h-8"
-                                                        />
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[11px] font-semibold text-slate-700">
+                                                                Speaker / Facilitator / Host (Optional)
+                                                            </Label>
+                                                            <Input
+                                                                placeholder="e.g. Dr. Milind Kamble & Guest Dignitaries"
+                                                                value={item.speaker || ""}
+                                                                onChange={(e) =>
+                                                                    handleUpdateAgendaItem(item.id, "speaker", e.target.value)
+                                                                }
+                                                                className="bg-white rounded-xl text-xs h-8"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[11px] font-semibold text-slate-700">
+                                                                Session Overview / Note (Optional)
+                                                            </Label>
+                                                            <Input
+                                                                placeholder="Brief one-line overview (optional if using sub-sections)"
+                                                                value={item.description || ""}
+                                                                onChange={(e) =>
+                                                                    handleUpdateAgendaItem(item.id, "description", e.target.value)
+                                                                }
+                                                                className="bg-white rounded-xl text-xs h-8"
+                                                            />
+                                                        </div>
                                                     </div>
 
-                                                    <div className="space-y-1">
-                                                        <Label className="text-[11px] font-semibold text-slate-700">
-                                                            Session Overview / Key Takeaways
-                                                        </Label>
-                                                        <Textarea
-                                                            placeholder="Brief summary of what will be covered..."
-                                                            value={item.description || ""}
-                                                            onChange={(e) =>
-                                                                handleUpdateAgendaItem(item.id, "description", e.target.value)
-                                                            }
-                                                            rows={2}
-                                                            className="bg-white rounded-xl text-xs"
-                                                        />
-                                                    </div>
+                                                    {/* Sub-Sections Builder */}
+                                                    {!isBreak && (
+                                                        <div className="p-3 rounded-xl bg-white border border-blue-200/80 space-y-2.5">
+                                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <span className="text-xs font-bold text-blue-950 flex items-center gap-1.5">
+                                                                        <ListOrdered className="w-3.5 h-3.5 text-blue-600" />
+                                                                        <span>Sub-sections / Segment Breakdown ({subItems.length})</span>
+                                                                    </span>
+                                                                    {subMinutesSum > 0 && (
+                                                                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                                                                            Sub-items sum: {subMinutesSum} mins
+                                                                        </span>
+                                                                    )}
+                                                                    {subMinutesSum > 0 && subMinutesSum !== item.durationMinutes && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                handleUpdateAgendaItem(item.id, "durationMinutes", subMinutesSum)
+                                                                            }
+                                                                            className="text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-full transition-colors">
+                                                                            Sync session length ({subMinutesSum}m)
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    {subItems.length > 0 && (
+                                                                        <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-[11px]">
+                                                                            {(
+                                                                                [
+                                                                                    { id: "bullet", label: "• Bullets" },
+                                                                                    { id: "numeric", label: "1, 2, 3" },
+                                                                                    { id: "roman", label: "I, II, III" },
+                                                                                ] as { id: AgendaSubItemStyle; label: string }[]
+                                                                            ).map((opt) => (
+                                                                                <button
+                                                                                    key={opt.id}
+                                                                                    type="button"
+                                                                                    onClick={() =>
+                                                                                        handleUpdateAgendaItem(item.id, "subItemsStyle", opt.id)
+                                                                                    }
+                                                                                    className={`px-2 py-0.5 rounded font-semibold transition-all ${
+                                                                                        (item.subItemsStyle || "bullet") === opt.id
+                                                                                            ? "bg-white text-blue-900 shadow-xs border border-slate-200"
+                                                                                            : "text-slate-500 hover:text-slate-800"
+                                                                                    }`}>
+                                                                                    {opt.label}
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => handleAddSubItem(item.id)}
+                                                                        className="rounded-lg text-[11px] font-bold h-7 px-2.5 text-blue-700 border-blue-200 bg-blue-50/70 hover:bg-blue-100">
+                                                                        <Plus className="w-3 h-3 mr-1" />
+                                                                        Add Sub-section
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+
+                                                            {subItems.length === 0 ? (
+                                                                <p className="text-[11px] text-slate-400">
+                                                                    Optional: add individual keynote talks, case studies, or Q&A sub-segments inside this session card.
+                                                                </p>
+                                                            ) : (
+                                                                <div className="space-y-1.5">
+                                                                    {subItems.map((sub, sIdx) => (
+                                                                        <div
+                                                                            key={sub.id}
+                                                                            className="grid grid-cols-1 md:grid-cols-12 gap-1.5 items-center bg-slate-50/80 px-2.5 py-1.5 rounded-xl border border-slate-200/80">
+                                                                            <div className="md:col-span-5 flex items-center gap-1.5">
+                                                                                <span className="text-[11px] font-bold text-blue-700 min-w-[20px] text-center shrink-0">
+                                                                                    {formatSubItemMarker(sIdx, item.subItemsStyle)}
+                                                                                </span>
+                                                                                <Input
+                                                                                    placeholder="Topic / Segment title *"
+                                                                                    value={sub.title}
+                                                                                    onChange={(e) =>
+                                                                                        handleUpdateSubItem(item.id, sub.id, "title", e.target.value)
+                                                                                    }
+                                                                                    className="bg-white rounded-lg text-xs h-7 px-2 font-medium"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="md:col-span-4">
+                                                                                <Input
+                                                                                    placeholder="Speaker / Guest (optional)"
+                                                                                    value={sub.speaker || ""}
+                                                                                    onChange={(e) =>
+                                                                                        handleUpdateSubItem(item.id, sub.id, "speaker", e.target.value)
+                                                                                    }
+                                                                                    className="bg-white rounded-lg text-xs h-7 px-2"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="md:col-span-2 flex items-center gap-1">
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    min="0"
+                                                                                    max="240"
+                                                                                    placeholder="Mins"
+                                                                                    value={sub.durationMinutes ?? ""}
+                                                                                    onChange={(e) => {
+                                                                                        const raw = e.target.value;
+                                                                                        handleUpdateSubItem(
+                                                                                            item.id,
+                                                                                            sub.id,
+                                                                                            "durationMinutes",
+                                                                                            raw === "" ? undefined : parseInt(raw, 10) || undefined,
+                                                                                        );
+                                                                                    }}
+                                                                                    className="bg-white rounded-lg text-xs h-7 px-2 text-center font-semibold"
+                                                                                />
+                                                                                <span className="text-[10px] text-slate-400 shrink-0">min</span>
+                                                                            </div>
+                                                                            <div className="md:col-span-1 flex items-center justify-end gap-0.5">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleMoveSubItem(item.id, sIdx, "up")}
+                                                                                    disabled={sIdx === 0}
+                                                                                    className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                                                                                    title="Move Up">
+                                                                                    <ArrowUp className="w-3 h-3" />
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleMoveSubItem(item.id, sIdx, "down")}
+                                                                                    disabled={sIdx === subItems.length - 1}
+                                                                                    className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                                                                                    title="Move Down">
+                                                                                    <ArrowDown className="w-3 h-3" />
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleRemoveSubItem(item.id, sub.id)}
+                                                                                    className="p-1 text-red-400 hover:text-red-600"
+                                                                                    title="Delete Sub-section">
+                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

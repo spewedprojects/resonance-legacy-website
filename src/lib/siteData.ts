@@ -139,6 +139,16 @@ export interface EventPeopleSection {
     members: EventPerson[];
 }
 
+export type AgendaSectionType = "session" | "special" | "break";
+export type AgendaSubItemStyle = "bullet" | "numeric" | "roman";
+
+export interface EventAgendaSubItem {
+    id: string;
+    title: string;
+    speaker?: string;
+    durationMinutes?: number;
+}
+
 export interface EventAgendaItem {
     id: string;
     time?: string;
@@ -147,6 +157,10 @@ export interface EventAgendaItem {
     speaker?: string;
     description?: string;
     isBreak?: boolean;
+    sectionType?: AgendaSectionType;
+    sectionLabel?: string;
+    subItems?: EventAgendaSubItem[];
+    subItemsStyle?: AgendaSubItemStyle;
 }
 
 export interface ResonanceEvent {
@@ -1847,6 +1861,8 @@ export function getAgendaItemDuration(item: EventAgendaItem, defaultMinutes = 45
 
 export interface CalculatedAgendaItem extends EventAgendaItem {
     sessionNumber: number;
+    sectionType: AgendaSectionType;
+    badgeLabel: string;
     isBreak: boolean;
     startMinutes: number;
     endMinutes: number;
@@ -1855,6 +1871,21 @@ export interface CalculatedAgendaItem extends EventAgendaItem {
     timeRangeStr: string;
     durationMinutes: number;
     durationLabel: string;
+}
+
+/**
+ * Formats the display marker for an agenda sub-section ("•", "1.", or Roman numeral "I.").
+ */
+export function formatSubItemMarker(
+    index: number,
+    style: AgendaSubItemStyle = "bullet",
+): string {
+    if (style === "numeric") return `${index + 1}.`;
+    if (style === "roman") {
+        const romans = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+        return `${romans[index] ?? String(index + 1)}.`;
+    }
+    return "•";
 }
 
 /**
@@ -1872,8 +1903,10 @@ export function calculateAgendaSchedule(
     let sessionCount = 0;
 
     return agenda.map((item) => {
-        const isBreak = Boolean(item.isBreak);
-        if (!isBreak) {
+        const sectionType: AgendaSectionType =
+            item.sectionType ?? (item.isBreak ? "break" : "session");
+        const isBreak = sectionType === "break" || Boolean(item.isBreak);
+        if (sectionType === "session" && !isBreak) {
             sessionCount += 1;
         }
         const duration = getAgendaItemDuration(item, isBreak ? 30 : 45);
@@ -1884,10 +1917,18 @@ export function calculateAgendaSchedule(
         const startTimeStr = formatMinutesToTime12(startMins);
         const endTimeStr = formatMinutesToTime12(endMins);
 
+        const badgeLabel = isBreak
+            ? "Break"
+            : sectionType === "special"
+                ? (item.sectionLabel?.trim() || "Special Session")
+                : `Session ${sessionCount}`;
+
         return {
             ...item,
+            sectionType,
+            badgeLabel,
             isBreak,
-            sessionNumber: isBreak ? 0 : sessionCount,
+            sessionNumber: sectionType === "session" && !isBreak ? sessionCount : 0,
             startMinutes: startMins,
             endMinutes: endMins,
             startTimeStr,
