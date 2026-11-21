@@ -163,6 +163,14 @@ export interface EventAgendaItem {
     subItemsStyle?: AgendaSubItemStyle;
 }
 
+export interface EventCarouselSlide {
+    id: string;
+    image: string;
+    title?: string;
+    badge?: string;
+    description: string;
+}
+
 export interface ResonanceEvent {
     id: string;
     slug?: string;
@@ -172,6 +180,9 @@ export interface ResonanceEvent {
     purpose?: string;
     description: string;
     bannerImage: string;
+    carouselEnabled?: boolean;
+    carouselIntervalSeconds?: number;
+    carouselSlides?: EventCarouselSlide[];
     date: string;
     startTime?: string;
     endTime?: string;
@@ -179,6 +190,7 @@ export interface ResonanceEvent {
     venue?: string;
     category?: string;
     status: "upcoming" | "ongoing" | "completed";
+    isHidden?: boolean;
     registrationSnippet?: string;
     registrationUrl?: string;
     buttonStyle?: "gradient" | "navy" | "glow" | "classic";
@@ -1666,17 +1678,23 @@ export const processImageFile = (
     file: File,
     maxWidth = 500,
     quality = 0.85,
+    preserveSmallOriginal = false,
 ): Promise<string> => {
     return new Promise((resolve, reject) => {
-        // Direct passthrough for SVG vectors to avoid rasterization / quality degradation
+        const readAsDataUrl = () => {
+            const directReader = new FileReader();
+            directReader.onload = (e) => resolve((e.target?.result as string) || "");
+            directReader.onerror = (e) => reject(e);
+            directReader.readAsDataURL(file);
+        };
+
+        // Direct passthrough for SVG vectors or compact high-res images when preservation is requested
         if (
             file.type === "image/svg+xml" ||
-            file.name.toLowerCase().endsWith(".svg")
+            file.name.toLowerCase().endsWith(".svg") ||
+            (preserveSmallOriginal && file.size <= 450 * 1024)
         ) {
-            const svgReader = new FileReader();
-            svgReader.onload = (e) => resolve((e.target?.result as string) || "");
-            svgReader.onerror = (e) => reject(e);
-            svgReader.readAsDataURL(file);
+            readAsDataUrl();
             return;
         }
 
@@ -1702,6 +1720,8 @@ export const processImageFile = (
                     resolve(event.target?.result as string);
                     return;
                 }
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, width, height);
                 ctx.drawImage(img, 0, 0, width, height);
                 const dataUrl = canvas.toDataURL("image/jpeg", quality);
                 resolve(dataUrl);
@@ -1711,6 +1731,19 @@ export const processImageFile = (
         reader.onerror = (err) => reject(err);
     });
 };
+
+/**
+ * Strips script/iframe/event-handler XSS payloads from rich-text HTML on client render.
+ */
+export function sanitizeRichHtmlBasic(html: string): string {
+    if (!html) return "";
+    return html
+        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+        .replace(/<(iframe|object|embed|form|style)[\s\S]*?>[\s\S]*?<\/\1>/gi, "")
+        .replace(/<(iframe|object|embed|link|meta)[^>]*\/?>/gi, "")
+        .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+        .replace(/(href|src)\s*=\s*(['"])\s*(javascript|vbscript|data:text\/html):[\s\S]*?\2/gi, '$1="#"');
+}
 
 // ================= EVENT DATE & TIME HELPERS =================
 export function isEventPast(dateStr?: string, status?: string): boolean {

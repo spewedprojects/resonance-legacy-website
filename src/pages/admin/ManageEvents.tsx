@@ -31,6 +31,7 @@ import {
     Clock,
     MapPin,
     Eye,
+    EyeOff,
     Users,
     Building2,
 } from "lucide-react";
@@ -84,6 +85,20 @@ const ManageEvents: React.FC = () => {
         handleSavePortalUrl(undefined, checked);
     };
 
+    const handleToggleHidden = (targetEvent: ResonanceEvent) => {
+        const nextHidden = !targetEvent.isHidden;
+        const updated = events.map((ev) =>
+            ev.id === targetEvent.id ? { ...ev, isHidden: nextHidden || undefined } : ev,
+        );
+        saveStoredEvents(updated);
+        setEvents(updated);
+        toast.success(
+            nextHidden
+                ? `Hid "${targetEvent.title}" from the live website.`
+                : `Published "${targetEvent.title}" to the live website.`,
+        );
+    };
+
     const handleDelete = (id: string, title: string) => {
         if (confirm(`Are you sure you want to delete event "${title}"?`)) {
             const updated = events.filter((ev) => ev.id !== id && ev.slug !== id);
@@ -134,6 +149,12 @@ const ManageEvents: React.FC = () => {
                         <span className="px-3 py-1 bg-white/10 text-white text-xs font-semibold rounded-full">
                             {events.length} Listed Events
                         </span>
+                        {events.some((ev) => ev.isHidden) && (
+                            <span className="px-3 py-1 bg-amber-500/25 text-amber-200 border border-amber-400/30 text-xs font-semibold rounded-full flex items-center gap-1">
+                                <EyeOff className="w-3 h-3" />
+                                {events.filter((ev) => ev.isHidden).length} Hidden Draft
+                            </span>
+                        )}
                     </div>
                     <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
                         Events & Conclaves Hub
@@ -232,10 +253,16 @@ const ManageEvents: React.FC = () => {
                     const totalSpeakers = event.peopleSections?.reduce((acc, s) => acc + (s.members?.length || 0), 0) || 0;
                     const totalPartners = (event.partnerSections?.reduce((acc, s) => acc + (s.partners?.length || 0), 0) || 0) + (event.partners?.length || 0);
 
+                    const isHidden = Boolean(event.isHidden);
+
                     return (
                         <div
                             key={event.id}
-                            className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col justify-between">
+                            className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col justify-between ${
+                                isHidden
+                                    ? "border-amber-300 ring-1 ring-amber-200/70 bg-amber-50/15"
+                                    : "border-slate-200"
+                            }`}>
                             <div>
                                 {/* 16:9 Banner Image Header */}
                                 <div className="aspect-video w-full bg-slate-800 relative overflow-hidden group flex items-center justify-center">
@@ -243,7 +270,9 @@ const ManageEvents: React.FC = () => {
                                         <img
                                             src={event.bannerImage}
                                             alt={event.title}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
+                                                isHidden ? "opacity-75 grayscale-[20%]" : ""
+                                            }`}
                                             onError={(e) => {
                                                 e.currentTarget.onerror = null;
                                                 showPlaceholder(e.currentTarget);
@@ -259,15 +288,23 @@ const ManageEvents: React.FC = () => {
                                             <span className="px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-black/60 text-white backdrop-blur-xs border border-white/20">
                                                 {event.category || "Event"}
                                             </span>
-                                            {past ? (
-                                                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800/90 text-slate-300 border border-slate-700">
-                                                    Concluded
-                                                </span>
-                                            ) : (
-                                                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-600 text-white shadow-xs">
-                                                    Active
-                                                </span>
-                                            )}
+                                            <div className="flex items-center gap-1.5">
+                                                {isHidden && (
+                                                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500 text-white shadow-xs flex items-center gap-1">
+                                                        <EyeOff className="w-3 h-3" />
+                                                        Hidden
+                                                    </span>
+                                                )}
+                                                {past ? (
+                                                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800/90 text-slate-300 border border-slate-700">
+                                                        Concluded
+                                                    </span>
+                                                ) : !isHidden ? (
+                                                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-600 text-white shadow-xs">
+                                                        Active
+                                                    </span>
+                                                ) : null}
+                                            </div>
                                         </div>
 
                                         <div className="text-white">
@@ -354,16 +391,18 @@ const ManageEvents: React.FC = () => {
 
                             {/* Card Footer Actions */}
                             <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-                                <div className="flex items-center gap-1.5">
-                                    <Link to={`/events/${event.slug || event.id}`} target="_blank">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="rounded-xl text-xs font-semibold h-8 bg-white text-blue-700 border-blue-200 hover:bg-blue-50 flex items-center gap-1">
-                                            <Eye className="w-3 h-3" />
-                                            <span>View Page</span>
-                                        </Button>
-                                    </Link>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    {!isHidden && (
+                                        <Link to={`/events/${event.slug || event.id}`} target="_blank">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="rounded-xl text-xs font-semibold h-8 bg-white text-blue-700 border-blue-200 hover:bg-blue-50 flex items-center gap-1">
+                                                <Eye className="w-3 h-3" />
+                                                <span>View Page</span>
+                                            </Button>
+                                        </Link>
+                                    )}
 
                                     <Link to={`/admin/events/edit/${event.slug || event.id}`}>
                                         <Button
@@ -373,6 +412,30 @@ const ManageEvents: React.FC = () => {
                                             <span>Edit Event</span>
                                         </Button>
                                     </Link>
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleToggleHidden(event)}
+                                        className={`rounded-xl text-xs font-semibold h-8 flex items-center gap-1 ${
+                                            isHidden
+                                                ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                                                : "bg-amber-50/70 text-amber-800 border-amber-200 hover:bg-amber-100"
+                                        }`}
+                                        title={isHidden ? "Unhide & Publish Event" : "Hide Event from Live Site"}>
+                                        {isHidden ? (
+                                            <>
+                                                <Eye className="w-3 h-3" />
+                                                <span>Unhide / Publish</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <EyeOff className="w-3 h-3" />
+                                                <span>Hide</span>
+                                            </>
+                                        )}
+                                    </Button>
                                 </div>
 
                                 <div className="flex items-center gap-1">

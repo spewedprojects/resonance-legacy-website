@@ -41,6 +41,7 @@ const Events: React.FC = () => {
     }, []);
 
     const filteredEvents = events.filter((ev) => {
+        if (ev.isHidden) return false;
         if (selectedStatus === "all") return true;
         const past = isEventPast(ev.date, ev.status);
         if (selectedStatus === "completed") {

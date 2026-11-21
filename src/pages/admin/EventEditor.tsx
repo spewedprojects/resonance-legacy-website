@@ -15,6 +15,7 @@ import {
     EventAgendaSubItem,
     AgendaSectionType,
     AgendaSubItemStyle,
+    EventCarouselSlide,
     processImageFile,
     calculateAgendaSchedule,
     formatSessionDuration,
@@ -44,6 +45,7 @@ import {
     Code,
     Sparkles,
     Eye,
+    EyeOff,
     Building2,
     Users,
     UserCheck,
@@ -57,9 +59,11 @@ import {
     Check,
     User,
     Image as ImageIcon,
+    Images,
     Coffee,
     ListOrdered,
 } from "lucide-react";
+import { Editor } from "primereact/editor";
 import EventRegistrationWidget, { WidgetButtonStyle } from "@/components/EventRegistrationWidget";
 import { toast } from "sonner";
 
@@ -69,7 +73,38 @@ const showPlaceholder = (img: HTMLImageElement) => {
     img.src = PLACEHOLDER_IMAGE;
 };
 
-type EventEditorTab = "info" | "people" | "partners" | "agenda" | "registration";
+type EventEditorTab = "info" | "carousel" | "people" | "partners" | "agenda" | "registration";
+const EDITOR_TABS: EventEditorTab[] = ["info", "carousel", "people", "partners", "agenda", "registration"];
+
+const renderCarouselToolbar = () => (
+    <span className="ql-formats flex flex-wrap items-center gap-0.5 p-1.5 bg-slate-50 border-b border-slate-200">
+        <select className="ql-header" defaultValue="" aria-label="Heading">
+            <option value="2">Heading 2</option>
+            <option value="3">Heading 3</option>
+            <option value="">Normal</option>
+        </select>
+        <span className="w-[1px] h-4 bg-slate-300 mx-1" />
+        <button type="button" className="ql-bold" title="Bold" />
+        <button type="button" className="ql-italic" title="Italic" />
+        <button type="button" className="ql-underline" title="Underline" />
+        <button type="button" className="ql-strike" title="Strikethrough" />
+        <span className="w-[1px] h-4 bg-slate-300 mx-1" />
+        <select className="ql-color" title="Text Color" aria-label="Text Color" />
+        <select className="ql-background" title="Highlight Color" aria-label="Highlight Color" />
+        <span className="w-[1px] h-4 bg-slate-300 mx-1" />
+        <button type="button" className="ql-list" value="bullet" title="Bullet List" />
+        <button type="button" className="ql-list" value="ordered" title="Numbered List" />
+        <button type="button" className="ql-blockquote" title="Quote" />
+        <span className="w-[1px] h-4 bg-slate-300 mx-1" />
+        <button type="button" className="ql-align" value="" title="Align Left" />
+        <button type="button" className="ql-align" value="center" title="Align Center" />
+        <button type="button" className="ql-align" value="right" title="Align Right" />
+        <button type="button" className="ql-align" value="justify" title="Justify" />
+        <span className="w-[1px] h-4 bg-slate-300 mx-1" />
+        <button type="button" className="ql-link" title="Link" />
+        <button type="button" className="ql-clean" title="Clear Formatting" />
+    </span>
+);
 
 // Normalizes arbitrary date formats (e.g. "March 28, 2026") into "YYYY-MM-DD" for <input type="date" />
 const normalizeToDateInput = (d?: string): string => {
@@ -113,7 +148,11 @@ const EventEditor: React.FC = () => {
     const [formVenue, setFormVenue] = useState("");
     const [formCategory, setFormCategory] = useState("Workshop");
     const [formStatus, setFormStatus] = useState<"upcoming" | "ongoing" | "completed">("upcoming");
+    const [formIsHidden, setFormIsHidden] = useState(false);
     const [formBannerImage, setFormBannerImage] = useState("");
+    const [formCarouselEnabled, setFormCarouselEnabled] = useState(false);
+    const [formCarouselInterval, setFormCarouselInterval] = useState(3);
+    const [formCarouselSlides, setFormCarouselSlides] = useState<EventCarouselSlide[]>([]);
     const [formSnippet, setFormSnippet] = useState("");
     const [formRegistrationUrl, setFormRegistrationUrl] = useState("");
     const [formButtonStyle, setFormButtonStyle] = useState<WidgetButtonStyle>("gradient");
@@ -142,7 +181,17 @@ const EventEditor: React.FC = () => {
                 setFormVenue(found.venue || "");
                 setFormCategory(found.category || "Workshop");
                 setFormStatus(found.status || "upcoming");
+                setFormIsHidden(Boolean(found.isHidden));
                 setFormBannerImage(found.bannerImage || "");
+                setFormCarouselEnabled(Boolean(found.carouselEnabled));
+                setFormCarouselInterval(
+                    typeof found.carouselIntervalSeconds === "number" && found.carouselIntervalSeconds >= 1
+                        ? found.carouselIntervalSeconds
+                        : 3,
+                );
+                setFormCarouselSlides(
+                    found.carouselSlides ? JSON.parse(JSON.stringify(found.carouselSlides)) : [],
+                );
                 setFormSnippet(found.registrationSnippet || "");
                 setFormRegistrationUrl(found.registrationUrl || portalUrl);
                 setFormButtonStyle(found.buttonStyle || "gradient");
@@ -192,9 +241,13 @@ const EventEditor: React.FC = () => {
             setFormVenue("Pune, Maharashtra");
             setFormCategory("Workshop");
             setFormStatus("upcoming");
+            setFormIsHidden(false);
             setFormBannerImage(
                 "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop",
             );
+            setFormCarouselEnabled(false);
+            setFormCarouselInterval(3);
+            setFormCarouselSlides([]);
             setFormSnippet(
                 `<a href="${portalUrl}" target="_blank" rel="noopener noreferrer"><span>Register Now</span></a>`,
             );
@@ -508,6 +561,65 @@ const EventEditor: React.FC = () => {
         }
     };
 
+    // ================= CAROUSEL SLIDE HANDLERS =================
+    const handleAddCarouselSlide = () => {
+        const newId = `cslide-${Date.now()}`;
+        const newSlide: EventCarouselSlide = {
+            id: newId,
+            image: "",
+            title: "",
+            badge: "Distinguished Speaker",
+            description: "",
+        };
+        setFormCarouselSlides((prev) => [...prev, newSlide]);
+        setExpandedItems((prev) => ({ ...prev, [newId]: true }));
+    };
+
+    const handleUpdateCarouselSlide = <K extends keyof EventCarouselSlide>(
+        slideId: string,
+        field: K,
+        value: EventCarouselSlide[K],
+    ) => {
+        setFormCarouselSlides((prev) =>
+            prev.map((s) => (s.id === slideId ? { ...s, [field]: value } : s)),
+        );
+    };
+
+    const handleMoveCarouselSlide = (index: number, direction: "up" | "down") => {
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= formCarouselSlides.length) return;
+        const copy = [...formCarouselSlides];
+        const tmp = copy[index];
+        copy[index] = copy[targetIndex];
+        copy[targetIndex] = tmp;
+        setFormCarouselSlides(copy);
+    };
+
+    const handleRemoveCarouselSlide = (slideId: string) => {
+        setFormCarouselSlides((prev) => prev.filter((s) => s.id !== slideId));
+    };
+
+    const handleCarouselImageUpload = async (
+        slideId: string,
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/") && !file.name.toLowerCase().endsWith(".svg")) {
+            toast.error("Please select a valid image file (PNG, JPG, WEBP, SVG)");
+            return;
+        }
+        try {
+            const dataUrl = await processImageFile(file, 1800, 0.94, true);
+            handleUpdateCarouselSlide(slideId, "image", dataUrl);
+            toast.success("Carousel slide image uploaded (high resolution preserved)");
+        } catch {
+            toast.error("Failed to process image file");
+        } finally {
+            e.target.value = "";
+        }
+    };
+
     // ================= AGENDA HANDLERS =================
     const addAgendaEntry = (type: AgendaSectionType) => {
         const newId = `ag-${type}-${Date.now()}`;
@@ -725,7 +837,13 @@ const EventEditor: React.FC = () => {
             venue: formVenue.trim() || undefined,
             category: formCategory.trim() || undefined,
             status: formStatus,
+            isHidden: formIsHidden || undefined,
             bannerImage: formBannerImage?.trim() || "",
+            carouselEnabled: formCarouselEnabled,
+            carouselIntervalSeconds: Math.max(1, Number(formCarouselInterval) || 3),
+            carouselSlides: formCarouselSlides.filter(
+                (s) => s.image?.trim() || s.description?.trim() || s.title?.trim(),
+            ),
             registrationSnippet: formSnippet.trim() || undefined,
             registrationUrl: formRegistrationUrl.trim() || undefined,
             buttonStyle: formButtonStyle,
@@ -777,9 +895,15 @@ const EventEditor: React.FC = () => {
                         <span>Back to Events</span>
                     </Button>
                     <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-blue-950 flex items-center gap-2">
+                        <h1 className="text-xl md:text-2xl font-bold text-blue-950 flex flex-wrap items-center gap-2">
                             <Calendar className="w-6 h-6 text-orange-500" />
                             <span>{isEditing ? `Edit: ${formTitle || "Event"}` : "Create New Event"}</span>
+                            {formIsHidden && (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                                    <EyeOff className="w-3 h-3" />
+                                    Hidden from Live Site
+                                </span>
+                            )}
                         </h1>
                         <p className="text-xs text-slate-500 mt-0.5">
                             Dedicated high-speed editor with custom permalink, agenda scheduler, and partner showcase
@@ -787,8 +911,30 @@ const EventEditor: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end md:self-center">
-                    {isEditing && (
+                <div className="flex flex-wrap items-center gap-2 self-end md:self-center">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFormIsHidden((prev) => !prev)}
+                        className={`rounded-xl text-xs font-semibold flex items-center gap-1.5 ${
+                            formIsHidden
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                                : "bg-amber-50/70 text-amber-800 border-amber-200 hover:bg-amber-100"
+                        }`}>
+                        {formIsHidden ? (
+                            <>
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Unhide / Publish</span>
+                            </>
+                        ) : (
+                            <>
+                                <EyeOff className="w-3.5 h-3.5" />
+                                <span>Hide Event</span>
+                            </>
+                        )}
+                    </Button>
+                    {isEditing && !formIsHidden && (
                         <Link to={`/events/${formSlug || id}`} target="_blank">
                             <Button
                                 type="button"
@@ -806,7 +952,13 @@ const EventEditor: React.FC = () => {
                         onClick={handleSave}
                         className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-5 shadow-sm flex items-center gap-1.5">
                         <Save className="w-4 h-4" />
-                        <span>{isEditing ? "Save Event Changes" : "Publish Event"}</span>
+                        <span>
+                            {formIsHidden
+                                ? "Save Hidden Draft"
+                                : isEditing
+                                    ? "Save Event Changes"
+                                    : "Publish Event"}
+                        </span>
                     </Button>
                 </div>
             </div>
@@ -871,7 +1023,26 @@ const EventEditor: React.FC = () => {
                             : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                     }`}>
                     <Info className="w-4 h-4 text-blue-600" />
-                    <span>1. Basic Info & Permalink</span>
+                    <span>1. Basic Info & Banner</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setActiveTab("carousel")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                        activeTab === "carousel"
+                            ? "bg-white text-blue-950 shadow-sm ring-1 ring-slate-300"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    }`}>
+                    <Images className="w-4 h-4 text-orange-600" />
+                    <span>2. Banner Carousel</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${
+                        formCarouselEnabled
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                            : "bg-slate-100 text-slate-500 border-slate-200"
+                    }`}>
+                        {formCarouselEnabled ? `ON • ${formCarouselSlides.length}` : `OFF`}
+                    </span>
                 </button>
 
                 <button
@@ -883,7 +1054,7 @@ const EventEditor: React.FC = () => {
                             : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                     }`}>
                     <Users className="w-4 h-4 text-indigo-600" />
-                    <span>2. Speakers & Guests</span>
+                    <span>3. Speakers & Guests</span>
                     <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/50">
                         {totalPeople}
                     </span>
@@ -898,7 +1069,7 @@ const EventEditor: React.FC = () => {
                             : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                     }`}>
                     <Building2 className="w-4 h-4 text-purple-600" />
-                    <span>3. Partners & Sponsors</span>
+                    <span>4. Partners & Sponsors</span>
                     <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-50 text-purple-700 font-semibold border border-purple-200/50">
                         {totalPartners}
                     </span>
@@ -913,7 +1084,7 @@ const EventEditor: React.FC = () => {
                             : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                     }`}>
                     <Clock className="w-4 h-4 text-amber-600" />
-                    <span>4. Agenda & Timeline</span>
+                    <span>5. Agenda & Timeline</span>
                     <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-50 text-amber-700 font-semibold border border-amber-200/50">
                         {formAgenda.length}
                     </span>
@@ -928,7 +1099,7 @@ const EventEditor: React.FC = () => {
                             : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                     }`}>
                     <Ticket className="w-4 h-4 text-emerald-600" />
-                    <span>5. Registration & CTA</span>
+                    <span>6. Registration & CTA</span>
                 </button>
             </div>
 
@@ -1226,6 +1397,349 @@ const EventEditor: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Quick Enable/Disable Carousel Switch in Info Tab */}
+                        <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="space-y-0.5">
+                                <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                                    <Images className="w-4 h-4 text-orange-600" />
+                                    <span>Event Showcase Carousel (Banner at Position 0 + 1:1 Slides)</span>
+                                </div>
+                                <p className="text-[11px] text-slate-600">
+                                    When enabled, your Event Banner appears first (Position 0), followed by 1:1 speaker posters with formatted writing.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-orange-200">
+                                    <Switch
+                                        checked={formCarouselEnabled}
+                                        onCheckedChange={setFormCarouselEnabled}
+                                        aria-label="Enable Showcase Carousel"
+                                    />
+                                    <span className="text-xs font-bold text-slate-800">
+                                        {formCarouselEnabled ? "Enabled" : "Disabled"}
+                                    </span>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setActiveTab("carousel")}
+                                    className="rounded-xl text-xs font-semibold bg-white border-orange-200 text-orange-700 hover:bg-orange-100">
+                                    Configure Slides ({formCarouselSlides.length}) →
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ================= TAB 2: BANNER CAROUSEL ================= */}
+                {activeTab === "carousel" && (
+                    <div className="space-y-6">
+                        <div className="p-4 sm:p-5 bg-orange-50/60 rounded-2xl border border-orange-200/80 space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-950 flex items-center gap-1.5">
+                                        <Images className="w-4 h-4 text-orange-600" />
+                                        <span>Event Banner Carousel (Banner at Position 0 + 1:1 Poster Slides)</span>
+                                    </h3>
+                                    <p className="text-xs text-slate-600 mt-0.5">
+                                        Starts with your Event Banner at Position 0, followed by slides featuring an uncropped 1:1 image on the left and a top-aligned formatted description on the right.
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                                    <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-orange-200 shadow-xs">
+                                        <Switch
+                                            checked={formCarouselEnabled}
+                                            onCheckedChange={setFormCarouselEnabled}
+                                            aria-label="Enable Banner Carousel"
+                                        />
+                                        <span className="text-xs font-bold text-slate-800">
+                                            {formCarouselEnabled ? "Carousel Enabled" : "Carousel Disabled"}
+                                        </span>
+                                    </div>
+
+                                    <Button
+                                        type="button"
+                                        onClick={handleAddCarouselSlide}
+                                        className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5">
+                                        <Plus className="w-3.5 h-3.5" />
+                                        <span>Add Slide</span>
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Carousel Timing Setting */}
+                            <div className="pt-3 border-t border-orange-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Label htmlFor="ev-carousel-interval" className="text-xs font-bold text-slate-800 flex items-center gap-1.5 shrink-0">
+                                        <Clock className="w-3.5 h-3.5 text-orange-600" />
+                                        <span>Auto-Slide Interval (Seconds):</span>
+                                    </Label>
+                                    <Input
+                                        id="ev-carousel-interval"
+                                        type="number"
+                                        min="1"
+                                        max="60"
+                                        step="1"
+                                        value={formCarouselInterval}
+                                        onChange={(e) => {
+                                            const parsed = parseInt(e.target.value, 10);
+                                            setFormCarouselInterval(Number.isFinite(parsed) && parsed >= 1 ? parsed : 3);
+                                        }}
+                                        className="w-24 bg-white rounded-xl text-xs font-bold h-8 text-center border-orange-200"
+                                    />
+                                    <span className="text-[11px] text-slate-500">
+                                        Default: 3s. Pauses if user manually clicks arrows/pages until they scroll past this section.
+                                    </span>
+                                </div>
+                                <span className="text-xs font-semibold text-orange-900">
+                                    Total Slides: {(formBannerImage.trim() ? 1 : 0) + formCarouselSlides.length}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Position 0 (Banner) Auto-Included Preview Bar */}
+                        <div className="rounded-2xl border border-blue-200/80 bg-blue-50/40 p-3.5 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-16 h-12 rounded-xl overflow-hidden bg-white border border-blue-200/70 shrink-0 flex items-center justify-center">
+                                    {formBannerImage.trim() ? (
+                                        <img
+                                            src={formBannerImage}
+                                            alt="Position 0 Event Banner"
+                                            className="w-full h-full object-contain"
+                                            onError={(e) => showPlaceholder(e.currentTarget)}
+                                        />
+                                    ) : (
+                                        <ImageIcon className="w-5 h-5 text-slate-400" />
+                                    )}
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-xs font-bold text-blue-950 flex items-center gap-2">
+                                        <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-bold uppercase">
+                                            Position 0 (First Slide)
+                                        </span>
+                                        <span>Event Banner Showcase</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-600 mt-0.5">
+                                        {formBannerImage.trim()
+                                            ? "Automatically included first in the carousel from your Event Banner in Tab 1."
+                                            : "No Event Banner set in Tab 1 yet — add a banner in Tab 1 or upload speaker slides below."}
+                                    </p>
+                                </div>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setActiveTab("info")}
+                                className="rounded-xl text-xs bg-white border-blue-200 text-blue-700 hover:bg-blue-50 shrink-0">
+                                Edit Banner
+                            </Button>
+                        </div>
+
+                        {formCarouselSlides.length === 0 ? (
+                            <div className="text-center py-12 px-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 space-y-3">
+                                <Images className="w-10 h-10 text-slate-400 mx-auto" />
+                                <div className="text-sm font-semibold text-slate-700">No carousel slides added yet</div>
+                                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                                    Add slides featuring a high-resolution 1:1 speaker/guest poster on the left and a richly formatted biography or highlight on the right.
+                                </p>
+                                <Button
+                                    type="button"
+                                    onClick={handleAddCarouselSlide}
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl text-xs font-semibold text-orange-600 border-orange-200 hover:bg-orange-50">
+                                    <Plus className="w-3.5 h-3.5 mr-1" />
+                                    Add First Carousel Slide
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {formCarouselSlides.map((slide, sIdx) => {
+                                    const isExpanded = expandedItems[slide.id] ?? false;
+                                    return (
+                                        <div
+                                            key={slide.id}
+                                            className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+                                            {/* Compact Slide Header Bar */}
+                                            <div
+                                                onClick={() => toggleExpanded(slide.id)}
+                                                className="p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 select-none">
+                                                <div className="flex items-center gap-3 min-w-0 grow">
+                                                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center">
+                                                        {slide.image ? (
+                                                            <img
+                                                                src={slide.image}
+                                                                alt={slide.title || `Slide ${sIdx + 1}`}
+                                                                className="w-full h-full object-contain"
+                                                                onError={(e) => showPlaceholder(e.currentTarget)}
+                                                            />
+                                                        ) : (
+                                                            <ImageIcon className="w-5 h-5 text-slate-400" />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0 grow">
+                                                        <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-2">
+                                                            <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-900 text-[10px] font-bold uppercase">
+                                                                Slide {sIdx + 1}
+                                                            </span>
+                                                            <span>
+                                                                {slide.title || (slide.badge ? `${slide.badge}` : <span className="text-slate-400 italic">Untitled Slide</span>)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                                                            {slide.description
+                                                                ? slide.description.replace(/<[^>]+>/g, " ").trim().slice(0, 90) || "Formatted content"
+                                                                : "Click to upload 1:1 image & edit writing"}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleMoveCarouselSlide(sIdx, "up")}
+                                                        disabled={sIdx === 0}
+                                                        className="h-7 w-7 rounded-lg">
+                                                        <ArrowUp className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleMoveCarouselSlide(sIdx, "down")}
+                                                        disabled={sIdx === formCarouselSlides.length - 1}
+                                                        className="h-7 w-7 rounded-lg">
+                                                        <ArrowDown className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleRemoveCarouselSlide(slide.id)}
+                                                        className="h-7 w-7 rounded-lg text-red-500 hover:bg-red-50">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <div className="pl-1 text-slate-400">
+                                                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Expanded Slide Editor */}
+                                            {isExpanded && (
+                                                <div className="p-4 pt-3 border-t border-slate-100 bg-slate-50/50 grid grid-cols-1 lg:grid-cols-12 gap-5">
+                                                    {/* Left: 1:1 High-Res Uncropped Poster Upload */}
+                                                    <div className="lg:col-span-4 space-y-2.5">
+                                                        <Label className="text-xs font-bold text-slate-700 block">
+                                                            1:1 Poster Image (Shown Uncropped)
+                                                        </Label>
+                                                        <div className="w-full max-w-[260px] aspect-square rounded-2xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-1.5 shadow-xs">
+                                                            {slide.image ? (
+                                                                <img
+                                                                    src={slide.image}
+                                                                    alt={slide.title || `Slide ${sIdx + 1}`}
+                                                                    className="w-full h-full object-contain"
+                                                                    onError={(e) => showPlaceholder(e.currentTarget)}
+                                                                />
+                                                            ) : (
+                                                                <div className="text-center p-4 text-slate-400 space-y-1">
+                                                                    <ImageIcon className="w-8 h-8 mx-auto opacity-60" />
+                                                                    <p className="text-[11px]">Upload 1:1 speaker poster</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs">
+                                                                <Upload className="w-3.5 h-3.5" />
+                                                                <span>Upload 1:1 Image</span>
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*,.svg"
+                                                                    onChange={(e) => handleCarouselImageUpload(slide.id, e)}
+                                                                    className="hidden"
+                                                                />
+                                                            </label>
+                                                            {slide.image && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handleUpdateCarouselSlide(slide.id, "image", "")}
+                                                                    className="rounded-xl text-xs h-8 text-red-600 border-red-200 hover:bg-red-50">
+                                                                    Clear
+                                                                </Button>
+                                                            )}
+                                                        </div>
+
+                                                        <Input
+                                                            placeholder="Or paste image URL (https://...)"
+                                                            value={slide.image}
+                                                            onChange={(e) => handleUpdateCarouselSlide(slide.id, "image", e.target.value)}
+                                                            className="bg-white rounded-xl text-xs h-8"
+                                                        />
+                                                        <p className="text-[10px] text-slate-500">
+                                                            Resolution preserved cleanly &amp; displayed via <code className="bg-slate-200/70 px-1 rounded">object-contain</code> without cropping.
+                                                        </p>
+                                                    </div>
+
+                                                    {/* Right: Slide Header + Rich-Text Formatted Writing */}
+                                                    <div className="lg:col-span-8 space-y-3">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[11px] font-semibold text-slate-700">
+                                                                    Speaker / Guest Heading (Optional)
+                                                                </Label>
+                                                                <Input
+                                                                    placeholder="e.g. Sharad Gangal"
+                                                                    value={slide.title || ""}
+                                                                    onChange={(e) => handleUpdateCarouselSlide(slide.id, "title", e.target.value)}
+                                                                    className="bg-white rounded-xl text-xs h-9 font-semibold"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[11px] font-semibold text-slate-700">
+                                                                    Badge / Role Tag (Optional)
+                                                                </Label>
+                                                                <Input
+                                                                    placeholder="e.g. Distinguished Speaker"
+                                                                    value={slide.badge || ""}
+                                                                    onChange={(e) => handleUpdateCarouselSlide(slide.id, "badge", e.target.value)}
+                                                                    className="bg-white rounded-xl text-xs h-9"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-1 compact-editor">
+                                                            <Label className="text-[11px] font-bold text-slate-700">
+                                                                Speaker / Highlight Writing (Formatted Description)
+                                                            </Label>
+                                                            <div className="bg-white rounded-xl overflow-hidden border border-slate-200">
+                                                                <Editor
+                                                                    value={slide.description || ""}
+                                                                    onTextChange={(e) =>
+                                                                        handleUpdateCarouselSlide(slide.id, "description", e.htmlValue || "")
+                                                                    }
+                                                                    headerTemplate={renderCarouselToolbar()}
+                                                                    placeholder="Write about this distinguished speaker, guest, or session highlight..."
+                                                                    style={{ height: "180px" }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -2343,9 +2857,8 @@ const EventEditor: React.FC = () => {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                    const tabs: EventEditorTab[] = ["info", "people", "partners", "agenda", "registration"];
-                                    const idx = tabs.indexOf(activeTab);
-                                    if (idx > 0) setActiveTab(tabs[idx - 1]);
+                                    const idx = EDITOR_TABS.indexOf(activeTab);
+                                    if (idx > 0) setActiveTab(EDITOR_TABS[idx - 1]);
                                 }}
                                 className="rounded-xl text-xs">
                                 ← Previous Section
@@ -2357,9 +2870,8 @@ const EventEditor: React.FC = () => {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                    const tabs: EventEditorTab[] = ["info", "people", "partners", "agenda", "registration"];
-                                    const idx = tabs.indexOf(activeTab);
-                                    if (idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
+                                    const idx = EDITOR_TABS.indexOf(activeTab);
+                                    if (idx < EDITOR_TABS.length - 1) setActiveTab(EDITOR_TABS[idx + 1]);
                                 }}
                                 className="rounded-xl text-xs text-blue-700 border-blue-200 hover:bg-blue-50">
                                 Next Section →
@@ -2368,7 +2880,11 @@ const EventEditor: React.FC = () => {
                         <Button
                             type="submit"
                             className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-6 shadow-xs">
-                            {isEditing ? "Save Event Changes" : "Publish Event"}
+                            {formIsHidden
+                                ? "Save Hidden Draft"
+                                : isEditing
+                                    ? "Save Event Changes"
+                                    : "Publish Event"}
                         </Button>
                     </div>
                 </div>

@@ -21,3 +21,8 @@
 .p-editor-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-options {
     z-index: 100;
 }
+
+.compact-editor .p-editor-container .p-editor-content .ql-editor {
+    min-height: 155px;
+    font-size: 0.9375rem;
+}

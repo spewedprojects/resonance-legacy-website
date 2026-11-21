@@ -31,6 +31,7 @@ import {
     EventPartnerSection,
 } from "@/lib/siteData";
 import EventRegistrationWidget from "@/components/EventRegistrationWidget";
+import EventShowcaseCarousel from "@/components/EventShowcaseCarousel";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -44,7 +45,8 @@ const EventDetail: React.FC = () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }, [id]);
 
-    const event = findEventByIdentifier(events, id);
+    const foundEvent = findEventByIdentifier(events, id);
+    const event = foundEvent && !foundEvent.isHidden ? foundEvent : undefined;
 
     const handleShare = (ev: ResonanceEvent) => {
         if (navigator.share) {
@@ -224,23 +226,39 @@ const EventDetail: React.FC = () => {
                     </div>
                 </section>
 
-                {/* Event Banner Showcase (Clean, 100% visible, not covered with any text) */}
-                {event.bannerImage && (
-                    <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-12">
-                        <div className="rounded-3xl overflow-hidden border border-slate-200/90 shadow-xl bg-slate-900/5">
-                            <img
-                                src={event.bannerImage}
-                                alt={event.title}
-                                className="w-full h-auto max-h-[560px] object-cover sm:object-contain mx-auto block"
-                                onError={(e) => {
-                                    const target = e.currentTarget as HTMLImageElement;
-                                    target.onerror = null;
-                                    target.src = "/media/placeholder.png";
-                                }}
+                {/* Event Showcase Carousel (includes Event Banner at Position 0 when enabled) or Standard Event Banner */}
+                {(() => {
+                    const validSlides = (event.carouselSlides || []).filter(
+                        (s) => s.image?.trim() || s.description?.trim() || s.title?.trim(),
+                    );
+                    if (event.carouselEnabled && (event.bannerImage || validSlides.length > 0)) {
+                        return (
+                            <EventShowcaseCarousel
+                                bannerImage={event.bannerImage}
+                                slides={validSlides}
+                                intervalSeconds={event.carouselIntervalSeconds}
+                                eventTitle={event.title}
                             />
-                        </div>
-                    </section>
-                )}
+                        );
+                    }
+                    if (!event.bannerImage) return null;
+                    return (
+                        <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-12">
+                            <div className="rounded-3xl overflow-hidden border border-slate-200/90 shadow-xl bg-slate-900/5">
+                                <img
+                                    src={event.bannerImage}
+                                    alt={event.title}
+                                    className="w-full h-auto max-h-[560px] object-cover sm:object-contain mx-auto block"
+                                    onError={(e) => {
+                                        const target = e.currentTarget as HTMLImageElement;
+                                        target.onerror = null;
+                                        target.src = "/media/placeholder.png";
+                                    }}
+                                />
+                            </div>
+                        </section>
+                    );
+                })()}
 
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12">
                     {/* Purpose Section */}
